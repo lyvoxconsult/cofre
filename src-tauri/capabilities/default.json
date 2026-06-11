@@ -1,0 +1,19 @@
+{
+  "identifier": "default",
+  "description": "Permissões padrão para o lyvox vault",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-clear",
+    "dialog:default",
+    "dialog:allow-message",
+    "dialog:allow-confirm",
+    "process:default",
+    "process:allow-exit",
+    "shell:default",
+    "shell:allow-open"
+  ]
+}
