@@ -1,7 +1,6 @@
 # Dependencies
 node_modules/
 /dist/
-/release/
 
 # Rust/Cargo
 target/
@@ -17,8 +16,9 @@ app/build/
 *.iml
 .idea/
 capture/
-*.apk
-*.aab
+# Com o Git LFS rastreando *.apk, não precisamos ignorar *.apk globalmente na pasta release
+# Mas podemos ignorar builds locais temporários fora de release:
+app/build/outputs/apk/debug/*.apk
 
 # macOS
 .DS_Store
