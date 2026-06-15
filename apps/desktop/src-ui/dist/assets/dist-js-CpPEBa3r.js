@@ -1,0 +1,1 @@
+import{t as e}from"./index-C9Vt-YCq.js";async function t(t,n){await e(`plugin:clipboard-manager|write_text`,{label:n?.label,text:t})}async function n(){return await e(`plugin:clipboard-manager|read_text`)}async function r(){await e(`plugin:clipboard-manager|clear`)}export{r as clear,n as readText,t as writeText};

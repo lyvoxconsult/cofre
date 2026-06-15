@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+/dist/
+/release/
+
+# Rust/Cargo
+target/
+**/*.rs.bk
+cargo-artifacts.lock
+
+# Android
+.gradle/
+build/
+local.properties
+app/build/
+.cxx/
+*.iml
+.idea/
+capture/
+*.apk
+*.aab
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.suo
+*.user
+*.workspace
+
+# Logs & temp
+*.log
+*.tmp
+*.bak
+temp/
+tmp/

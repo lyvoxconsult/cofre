@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Lyvox Vault lock mark -->
+    <group
+        android:translateX="18"
+        android:translateY="16">
+        <path
+            android:fillColor="#FF8B5CF6"
+            android:pathData="M36,0C24.9,0 16,8.9 16,20V32H12C5.4,32 0,37.4 0,44V76C0,82.6 5.4,88 12,88H60C66.6,88 72,82.6 72,76V44C72,37.4 66.6,32 60,32H56V20C56,8.9 47.1,0 36,0ZM24,32V20C24,13.4 29.4,8 36,8C42.6,8 48,13.4 48,20V32H24Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M36,53C41.5,53 46,57.5 46,63C46,68.5 41.5,73 36,73C30.5,73 26,68.5 26,63C26,57.5 30.5,53 36,53Z" />
+    </group>
+</vector>

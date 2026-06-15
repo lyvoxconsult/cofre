@@ -1,0 +1,16 @@
+{
+  "format": "lyvox.sync.v1",
+  "extension": ".vaultsync",
+  "magic": "LYVOX_VAULT_SYNC",
+  "conflict_policy": {
+    "update_update": "preserve_both",
+    "delete_update": "preserve_and_user_review",
+    "safe_field_merge": "allowed_only_when_documented"
+  },
+  "timestamps": "UTC RFC3339 only",
+  "revision": "monotonic per vault",
+  "transport": [
+    "file",
+    "qr_local_pairing"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "format": "lyvox.backup.v1",
+  "extension": ".vault",
+  "magic": "LYVOX_VAULT_BACKUP",
+  "required_payload": [
+    "vault_meta",
+    "devices",
+    "categories",
+    "tags",
+    "entries",
+    "entry_secrets",
+    "secure_notes",
+    "password_history",
+    "attachments",
+    "media_items",
+    "sync_tombstones"
+  ],
+  "reject": [
+    "wrong magic",
+    "wrong password",
+    "truncated chunk",
+    "modified nonce",
+    "modified ciphertext",
+    "unsupported format_version"
+  ]
+}

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lyvox Vault Next</string>
+    <string name="app_description">Gerenciador seguro de senhas</string>
+
+    <!-- Unlock -->
+    <string name="unlock_title">lyvox vault</string>
+    <string name="unlock_subtitle">Gerenciador seguro de senhas</string>
+    <string name="master_password_hint">Senha Mestra</string>
+    <string name="unlock_button">Desbloquear Cofre</string>
+    <string name="create_vault_title">Bem-vindo ao lyvox vault</string>
+    <string name="create_vault_subtitle">Crie sua senha mestra para proteger seu cofre</string>
+    <string name="create_vault_button">Criar Cofre</string>
+    <string name="confirm_password_hint">Confirme a Senha Mestra</string>
+    <string name="forgot_password">Esqueci minha senha</string>
+
+    <!-- Vault -->
+    <string name="vault_title">Cofre</string>
+    <string name="no_entries">Nenhuma entrada ainda</string>
+    <string name="add_entry">Adicionar entrada</string>
+    <string name="search_hint">Buscar por serviço, login ou URL</string>
+    <string name="copy_login">Copiar login</string>
+    <string name="copy_password">Copiar senha</string>
+    <string name="open_url">Abrir link</string>
+    <string name="edit_entry">Editar</string>
+    <string name="delete_entry">Excluir</string>
+    <string name="delete_confirm">Tem certeza que deseja excluir esta entrada?</string>
+    <string name="copied_to_clipboard">Copiado!</string>
+    <string name="clipboard_will_clear">O clipboard será limpo em %d segundos</string>
+
+    <!-- Entry Form -->
+    <string name="service_name_hint">Nome do serviço</string>
+    <string name="login_hint">Login / E-mail</string>
+    <string name="password_hint">Senha</string>
+    <string name="url_hint">URL (opcional)</string>
+    <string name="notes_hint">Notas (opcional)</string>
+    <string name="save_entry">Salvar</string>
+    <string name="cancel">Cancelar</string>
+
+    <!-- Generator -->
+    <string name="generator_title">Gerador de Senhas</string>
+    <string name="password_length">Comprimento</string>
+    <string name="include_uppercase">Maiúsculas (A-Z)</string>
+    <string name="include_lowercase">Minúsculas (a-z)</string>
+    <string name="include_numbers">Números (0-9)</string>
+    <string name="include_symbols">Símbolos (!@#$)</string>
+    <string name="exclude_ambiguous">Excluir ambíguos (il1Lo0O)</string>
+    <string name="generate_button">Gerar Senha</string>
+    <string name="copy_password_generated">Copiar senha</string>
+    <string name="strength_weak">Fraca</string>
+    <string name="strength_fair">Razoável</string>
+    <string name="strength_good">Boa</string>
+    <string name="strength_strong">Forte</string>
+    <string name="strength_very_strong">Muito Forte</string>
+    <string name="select_at_least_one">Selecione pelo menos um tipo de caractere</string>
+
+    <!-- Notes -->
+    <string name="notes_title">Notas Seguras</string>
+    <string name="add_note">Adicionar nota</string>
+    <string name="no_notes">Nenhuma nota ainda</string>
+    <string name="note_title_hint">Título</string>
+    <string name="note_content_hint">Conteúdo</string>
+    <string name="note_category_hint">Categoria</string>
+    <string name="save_note">Salvar</string>
+    <string name="delete_note_confirm">Tem certeza que deseja excluir esta nota?</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Configurações</string>
+    <string name="theme_section">Aparência</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Escuro</string>
+    <string name="theme_system">Sistema</string>
+    <string name="security_section">Segurança</string>
+    <string name="auto_lock">Bloqueio automático</string>
+    <string name="clipboard_clear">Limpeza do clipboard</string>
+    <string name="backup_section">Backup</string>
+    <string name="export_backup">Exportar backup</string>
+    <string name="import_backup">Importar backup</string>
+    <string name="recovery_section">Recuperação</string>
+    <string name="configure_recovery">Configurar recuperação</string>
+    <string name="biometric_section">Biometria</string>
+    <string name="enable_biometric">Ativar acesso por digital</string>
+    <string name="remove_biometric">Remover acesso por digital</string>
+    <string name="remove_biometric_confirm">Tem certeza que deseja remover o acesso por digital deste app?</string>
+    <string name="about_section">Sobre</string>
+    <string name="app_version">Versao 1.0.4-next</string>
+
+    <!-- Recovery -->
+    <string name="recovery_title">Recuperar Acesso</string>
+    <string name="recovery_subtitle">Responda às perguntas de segurança</string>
+    <string name="verify_answers">Verificar Respostas</string>
+    <string name="select_answer">Selecione uma resposta para cada pergunta</string>
+    <string name="recovery_blocked">Bloqueado. Aguarde %d segundos.</string>
+    <string name="reset_password_title">Redefinir Senha Mestra</string>
+    <string name="new_password_hint">Nova Senha Mestra</string>
+    <string name="confirm_new_password_hint">Confirme a Nova Senha</string>
+    <string name="reset_password_button">Redefinir Senha</string>
+
+    <!-- Backup -->
+    <string name="backup_password_hint">Senha de backup</string>
+    <string name="export_button">Exportar</string>
+    <string name="import_button">Importar</string>
+    <string name="replace_data">Substituir dados existentes</string>
+    <string name="merge_data">Mesclar com dados existentes</string>
+
+    <!-- Generic -->
+    <string name="error_generic">Ocorreu um erro. Tente novamente.</string>
+    <string name="password_min_length">A senha deve ter no mínimo 8 caracteres.</string>
+    <string name="passwords_dont_match">As senhas não coincidem.</string>
+    <string name="ok">OK</string>
+    <string name="confirm">Confirmar</string>
+    <string name="yes">Sim</string>
+    <string name="no">Não</string>
+
+    <!-- Navigation -->
+    <string name="nav_vault">Cofre</string>
+    <string name="nav_generator">Gerador</string>
+    <string name="nav_notes">Notas</string>
+    <string name="nav_settings">Config</string>
+</resources>
