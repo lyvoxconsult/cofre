@@ -100,7 +100,8 @@ fun SettingsScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToAudit: () -> Unit,
     onNavigateToCsvImport: () -> Unit,
-    onNavigateToSync: () -> Unit
+    onNavigateToSync: () -> Unit,
+    onNavigateToCategories: () -> Unit
 ) {
     val context = LocalContext.current
     val app = LyvoxApp.instance
@@ -359,7 +360,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection(title = "Aparencia", icon = Icons.Filled.Palette) {
+            SettingsSection(title = "Aparencia e Organizacao", icon = Icons.Filled.Palette) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     ThemeChip("Claro", Icons.Filled.LightMode, config.theme == "light") {
                         val updated = config.copy(theme = "light")
@@ -380,6 +381,13 @@ fun SettingsScreen(
                         app.themeConfig.value = updated
                     }
                 }
+                Spacer(Modifier.height(6.dp))
+                PremiumNavRow(
+                    icon = Icons.Filled.FolderOpen,
+                    title = "Gerenciar Categorias",
+                    subtitle = "Adicione, edite ou remova categorias",
+                    onClick = onNavigateToCategories
+                )
             }
 
             SettingsSection(title = "Auditoria de Seguranca", icon = Icons.Filled.Shield) {

@@ -49,7 +49,6 @@ pub fn run() {
             // Generate
             commands::generate::generate_password,
             commands::generate::evaluate_password,
-            // Vault
             commands::vault::create_entry,
             commands::vault::list_entries,
             commands::vault::search_entries,
@@ -57,6 +56,9 @@ pub fn run() {
             commands::vault::update_entry,
             commands::vault::delete_entry,
             commands::vault::list_categories,
+            commands::vault::create_category,
+            commands::vault::update_category,
+            commands::vault::delete_category,
             // Notes
             commands::notes::create_note,
             commands::notes::list_notes,

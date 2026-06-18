@@ -373,6 +373,37 @@ impl Database {
         }
     }
 
+    /// Cria uma nova categoria personalizada.
+    pub fn create_category(&self, name: &str, color: &str, icon: &str) -> SqlResult<String> {
+        let id = uuid::Uuid::new_v4().to_string();
+        self.conn.execute(
+            "INSERT INTO categories (id, name, color, icon, sort_order)
+             VALUES (?1, ?2, ?3, ?4, 0)",
+            params![id, name, color, icon],
+        )?;
+        Ok(id)
+    }
+
+    /// Atualiza uma categoria existente.
+    pub fn update_category(&self, id: &str, name: &str, color: &str, icon: &str) -> SqlResult<()> {
+        self.conn.execute(
+            "UPDATE categories
+             SET name = ?1, color = ?2, icon = ?3, updated_at = datetime('now')
+             WHERE id = ?4",
+            params![name, color, icon, id],
+        )?;
+        Ok(())
+    }
+
+    /// Exclui (soft delete) uma categoria pelo ID.
+    pub fn delete_category(&self, id: &str) -> SqlResult<()> {
+        self.conn.execute(
+            "UPDATE categories SET deleted_at = datetime('now'), updated_at = datetime('now') WHERE id = ?1",
+            params![id],
+        )?;
+        Ok(())
+    }
+
     // ─── CRUD de Notas Seguras ─────────────────────────────
 
     /// Cria uma nova nota criptografada.

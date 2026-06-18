@@ -275,3 +275,69 @@ pub fn list_categories(
             .map_err(|e| format!("Erro ao listar categorias: {e}"))
     })
 }
+
+#[tauri::command]
+pub fn create_category(
+    name: String,
+    color: String,
+    icon: String,
+    session: State<'_, SessionState>,
+    db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
+) -> Result<String, String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
+    let _key = get_session_key(&session)?;
+
+    db.with_db(|database| {
+        database
+            .create_category(&name, &color, &icon)
+            .map_err(|e| format!("Erro ao criar categoria: {e}"))
+    })
+}
+
+#[tauri::command]
+pub fn update_category(
+    id: String,
+    name: String,
+    color: String,
+    icon: String,
+    session: State<'_, SessionState>,
+    db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
+) -> Result<(), String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
+    let _key = get_session_key(&session)?;
+
+    db.with_db(|database| {
+        database
+            .update_category(&id, &name, &color, &icon)
+            .map_err(|e| format!("Erro ao atualizar categoria: {e}"))
+    })
+}
+
+#[tauri::command]
+pub fn delete_category(
+    id: String,
+    session: State<'_, SessionState>,
+    db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
+) -> Result<(), String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
+    let _key = get_session_key(&session)?;
+
+    if id == "1" || id == "2" || id == "3" || id == "4" {
+        return Err("Não é possível excluir categorias padrão do sistema.".to_string());
+    }
+
+    db.with_db(|database| {
+        database
+            .delete_category(&id)
+            .map_err(|e| format!("Erro ao excluir categoria: {e}"))
+    })
+}

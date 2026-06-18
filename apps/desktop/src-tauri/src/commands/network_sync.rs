@@ -209,49 +209,55 @@ pub async fn start_sync_server(app: AppHandle) -> Result<QrCodeData, String> {
         let _ = tx.send(());
     }
 
-    // Tenta encontrar o IP de Wi-Fi preferencial
-    let mut my_local_ip = local_ip_address::local_ip()
-        .map_err(|e| format!("Não foi possível obter o IP local: {}", e))?;
-    let mut fallback_ip = None;
+    // ── Seleção de IP local preferencial ─────────────────────────────────────
+    // Ordem de prioridade:
+    //   1. Interface com nome Wi-Fi / wlan / wireless
+    //   2. Qualquer IP privado que NÃO seja VPN nem adaptador virtual
+    // Prefixos excluídos: 127.x (loop), 169.254.x (APIPA), 26.x (Radmin),
+    //   192.168.56.x (VirtualBox), 172.16-31.x (Docker/WSL)
+    fn is_excluded_ip(ip_str: &str) -> bool {
+        if ip_str.starts_with("127.") || ip_str.starts_with("169.254.") || ip_str.starts_with("26.") {
+            return true;
+        }
+        if ip_str.starts_with("192.168.56.") {
+            return true;
+        }
+        if ip_str.starts_with("172.") {
+            if let Some(s) = ip_str.split('.').nth(1) {
+                if let Ok(n) = s.parse::<u8>() {
+                    if n >= 16 && n <= 31 { return true; }
+                }
+            }
+        }
+        false
+    }
+    fn is_private_ip(ip_str: &str) -> bool {
+        ip_str.starts_with("192.168.") || ip_str.starts_with("10.")
+    }
+
+    let mut wifi_ip: Option<std::net::IpAddr> = None;
+    let mut fallback_ip: Option<std::net::IpAddr> = None;
+
     if let Ok(interfaces) = local_ip_address::list_afinet_netifas() {
-        for (name, ip) in interfaces {
-            if ip.is_ipv4() {
-                let ip_str = ip.to_string();
-                let name_lower = name.to_lowercase();
-
-                // Ignora VPNs comuns e loopback
-                if ip_str.starts_with("127.")
-                    || ip_str.starts_with("169.254.")
-                    || ip_str.starts_with("26.")
-                {
-                    continue;
-                }
-
-                if name_lower.contains("wi-fi")
-                    || name_lower.contains("wlan")
-                    || name_lower.contains("wireless")
-                {
-                    my_local_ip = ip;
-                    break;
-                }
-
-                // Fallback para qualquer IP local comum (caso não tenha nome wi-fi mas seja ethernet local)
-                if fallback_ip.is_none()
-                    && (ip_str.starts_with("192.168.") || ip_str.starts_with("10."))
-                {
-                    fallback_ip = Some(ip);
-                }
+        for (name, ip) in &interfaces {
+            if !ip.is_ipv4() { continue; }
+            let ip_str = ip.to_string();
+            if is_excluded_ip(&ip_str) { continue; }
+            let name_lower = name.to_lowercase();
+            if name_lower.contains("wi-fi") || name_lower.contains("wlan") || name_lower.contains("wireless") {
+                if wifi_ip.is_none() { wifi_ip = Some(*ip); }
+            }
+            if fallback_ip.is_none() && is_private_ip(&ip_str) {
+                fallback_ip = Some(*ip);
             }
         }
     }
 
-    // Se não encontrou nenhuma interface chamada "Wi-Fi", usa o fallback (ex: rede 192.168 cabeada real)
-    if let Some(fb_ip) = fallback_ip {
-        if my_local_ip.to_string().starts_with("26.") || my_local_ip.to_string().starts_with("172.")
-        {
-            my_local_ip = fb_ip;
-        }
-    }
+    let my_local_ip = wifi_ip
+        .or(fallback_ip)
+        .unwrap_or_else(|| {
+            local_ip_address::local_ip().unwrap_or_else(|_| "127.0.0.1".parse().unwrap())
+        });
 
     let port = 8765; // Porta fixa para facilitar
 

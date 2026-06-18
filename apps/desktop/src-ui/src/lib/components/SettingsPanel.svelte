@@ -532,6 +532,16 @@
               <i>&rsaquo;</i>
             </button>
           {/if}
+          {#if sectionVisible("categorias personalizadas organizacao")}
+            <button class="action-card" onclick={() => currentTab.set("categories")}>
+              <span class="action-icon">📁</span>
+              <span>
+                <b>Categorias</b>
+                <small>Gerencie categorias personalizadas para organizacao.</small>
+              </span>
+              <i>&rsaquo;</i>
+            </button>
+          {/if}
           {#if sectionVisible("backup exportar restaurar")}
             <button class="action-card" onclick={() => (showBackupForm = !showBackupForm)}>
               <span class="action-icon">&#128190;</span>

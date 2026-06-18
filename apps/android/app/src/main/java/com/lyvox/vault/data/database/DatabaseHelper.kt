@@ -454,7 +454,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
     fun listCategories(): List<Category> {
         val db = readableDatabase
         val cursor = db.rawQuery(
-            "SELECT id, name, color, icon, sort_order FROM $TABLE_CATEGORIES ORDER BY sort_order",
+            "SELECT id, name, color, icon, sort_order FROM $TABLE_CATEGORIES WHERE deleted_at IS NULL ORDER BY sort_order",
             null
         )
         val categories = mutableListOf<Category>()
@@ -475,12 +475,48 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(
     fun getCategoryName(id: String): String? {
         val db = readableDatabase
         val cursor = db.rawQuery(
-            "SELECT name FROM $TABLE_CATEGORIES WHERE id = ?",
+            "SELECT name FROM $TABLE_CATEGORIES WHERE id = ? AND deleted_at IS NULL",
             arrayOf(id)
         )
         return cursor.use {
             if (it.moveToFirst()) it.getString(0) else null
         }
+    }
+
+    fun createCategory(name: String, color: String, icon: String): String {
+        val db = writableDatabase
+        val id = UUID.randomUUID().toString()
+        val values = ContentValues().apply {
+            put("id", id)
+            put("name", name)
+            put("color", color)
+            put("icon", icon)
+            put("sort_order", 0)
+            put("created_at", getCurrentTimestamp())
+            put("updated_at", getCurrentTimestamp())
+        }
+        db.insertOrThrow(TABLE_CATEGORIES, null, values)
+        return id
+    }
+
+    fun updateCategory(id: String, name: String, color: String, icon: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("name", name)
+            put("color", color)
+            put("icon", icon)
+            put("updated_at", getCurrentTimestamp())
+        }
+        db.update(TABLE_CATEGORIES, values, "id = ?", arrayOf(id))
+    }
+
+    fun deleteCategory(id: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put("deleted_at", getCurrentTimestamp())
+            put("updated_at", getCurrentTimestamp())
+        }
+        db.update(TABLE_CATEGORIES, values, "id = ?", arrayOf(id))
     }
 
     // ─── Vault Entries ─────────────────────────────────────

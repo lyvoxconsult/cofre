@@ -4,12 +4,14 @@ import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.gson.*
 import java.security.SecureRandom
+import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -23,14 +25,32 @@ object SyncNetworkManager {
                 disableHtmlEscaping()
             }
         }
+        // Timeout explícito: connect=15s, request=120s (payload pode ter arquivos grandes em base64)
+        install(HttpTimeout) {
+            connectTimeoutMillis = 15_000
+            requestTimeoutMillis = 120_000
+            socketTimeoutMillis = 120_000
+        }
+        engine {
+            config {
+                connectTimeout(15, TimeUnit.SECONDS)
+                readTimeout(120, TimeUnit.SECONDS)
+                writeTimeout(120, TimeUnit.SECONDS)
+            }
+        }
     }
 
     suspend fun testConnection(endpoint: String): Boolean {
         return try {
-            val response = client.get("$endpoint/ping")
+            val response = client.get("$endpoint/ping") {
+                timeout {
+                    connectTimeoutMillis = 5_000
+                    requestTimeoutMillis = 10_000
+                }
+            }
             response.status.isSuccess()
         } catch (e: Exception) {
-            Log.e("SyncNetworkManager", "Test connection failed.")
+            Log.e("SyncNetworkManager", "Test connection failed: ${e.message}")
             false
         }
     }
@@ -65,11 +85,11 @@ object SyncNetworkManager {
             if (response.status.isSuccess()) {
                 response.body<SyncResponse>()
             } else {
-                Log.e("SyncNetworkManager", "Sync failed with HTTP status.")
+                Log.e("SyncNetworkManager", "Sync failed with HTTP ${response.status.value}: ${response.status.description}")
                 null
             }
         } catch (e: Exception) {
-            Log.e("SyncNetworkManager", "Sync failed.")
+            Log.e("SyncNetworkManager", "Sync failed: ${e.javaClass.simpleName} — ${e.message}")
             null
         }
     }

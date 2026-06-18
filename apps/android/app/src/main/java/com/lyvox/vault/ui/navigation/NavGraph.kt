@@ -35,6 +35,7 @@ object Routes {
     const val CSV_IMPORT = "csv_import"
     const val MEDIA_VAULT = "media"
     const val SYNC = "sync"
+    const val CATEGORIES = "categories"
 
     fun entryDetail(entryId: String) = "entry_detail/$entryId"
     fun entryForm(entryId: String? = null) = if (entryId != null) "entry_form?entryId=$entryId" else "entry_form"
@@ -256,6 +257,9 @@ fun LyvoxNavHost() {
                     },
                     onNavigateToSync = {
                         navController.navigate(Routes.SYNC)
+                    },
+                    onNavigateToCategories = {
+                        navController.navigate(Routes.CATEGORIES)
                     }
                 )
             }
@@ -280,6 +284,12 @@ fun LyvoxNavHost() {
 
             composable(Routes.SYNC) {
                 SyncScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Routes.CATEGORIES) {
+                CategoryManagerScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

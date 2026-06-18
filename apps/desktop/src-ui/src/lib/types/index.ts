@@ -70,7 +70,7 @@ export interface SecureNoteDecrypted {
   deleted_at?: string | null;
 }
 
-export type ViewTab = "vault" | "generate" | "notes" | "settings" | "audit" | "csv_import" | "media";
+export type ViewTab = "vault" | "generate" | "notes" | "settings" | "audit" | "csv_import" | "media" | "categories";
 
 export interface AttachmentDecrypted {
   id: string;

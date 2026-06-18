@@ -10,6 +10,7 @@
   import CsvImportPanel from "./lib/components/CsvImportPanel.svelte";
   import MediaVault from "./lib/components/MediaVault.svelte";
   import Toast from "./lib/components/Toast.svelte";
+  import CategoriesPanel from "./lib/components/CategoriesPanel.svelte";
   import type { ViewTab } from "./lib/types";
 
   let unlocked = $state(false);
@@ -193,6 +194,8 @@
           <AuditPanel />
         {:else if tab === "csv_import"}
           <CsvImportPanel />
+        {:else if tab === "categories"}
+          <CategoriesPanel />
         {/if}
       </main>
     </div>
