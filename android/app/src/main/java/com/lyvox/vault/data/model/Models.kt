@@ -6,7 +6,7 @@ package com.lyvox.vault.data.model
 
 /** Vault entry as stored in DB (encrypted fields). */
 data class VaultEntry(
-    val id: Long = 0,
+    val id: String = "",
     val serviceName: String,
     val login: String,
     val encryptedPassword: String,   // base64
@@ -14,21 +14,24 @@ data class VaultEntry(
     val encryptedNotes: String,      // base64
     val notesNonce: String?,         // base64
     val url: String,
-    val categoryId: Long?,
+    val categoryId: String?,
     val isFavorite: Boolean = false,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val deletedAt: String? = null,
+    val deviceId: String? = null,
+    val lastModifiedDeviceId: String? = null
 )
 
 /** Decrypted vault entry for UI display. */
 data class VaultEntryDecrypted(
-    val id: Long,
+    val id: String,
     val serviceName: String,
     val login: String,
     val password: String,
     val notes: String,
     val url: String,
-    val categoryId: Long?,
+    val categoryId: String?,
     val categoryName: String?,
     val isFavorite: Boolean = false,
     val createdAt: String,
@@ -40,32 +43,35 @@ data class CreateEntryPayload(
     val serviceName: String,
     val login: String,
     val url: String,
-    val categoryId: Long?,
+    val categoryId: String?,
     val isFavorite: Boolean = false
 )
 
 /** Payload for updating an entry. */
 data class UpdateEntryPayload(
-    val id: Long,
+    val id: String,
     val serviceName: String,
     val login: String,
     val url: String,
-    val categoryId: Long?,
+    val categoryId: String?,
     val isFavorite: Boolean = false
 )
 
 /** Category for organizing entries. */
 data class Category(
-    val id: Long,
+    val id: String,
     val name: String,
     val color: String,
     val icon: String,
-    val sortOrder: Int
+    val sortOrder: Int,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+    val deletedAt: String? = null
 )
 
 /** Tag for organizing entries. */
 data class Tag(
-    val id: Long = 0,
+    val id: String = "",
     val name: String,
     val color: String,
     val createdAt: String
@@ -73,8 +79,8 @@ data class Tag(
 
 /** Password history record. */
 data class PasswordHistory(
-    val id: Long = 0,
-    val entryId: Long,
+    val id: String = "",
+    val entryId: String,
     val encryptedPassword: String,
     val passwordNonce: String,
     val createdAt: String
@@ -82,21 +88,26 @@ data class PasswordHistory(
 
 /** Secure note as stored in DB. */
 data class SecureNote(
-    val id: Long = 0,
+    val id: String = "",
     val title: String,
     val encryptedContent: String,   // base64
     val contentNonce: String,       // base64
     val category: String,
+    val isFavorite: Boolean = false,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val deletedAt: String? = null,
+    val deviceId: String? = null,
+    val lastModifiedDeviceId: String? = null
 )
 
 /** Decrypted secure note for UI display. */
 data class SecureNoteDecrypted(
-    val id: Long,
+    val id: String,
     val title: String,
     val content: String,
     val category: String,
+    val isFavorite: Boolean = false,
     val createdAt: String,
     val updatedAt: String
 )
@@ -161,4 +172,59 @@ data class RecoveryStatus(
     val blocked: Boolean,
     val blockedRemainingSecs: Long?,
     val attempts: Int
+)
+
+data class Attachment(
+    val id: String = "",
+    val entryId: String,
+    val filename: String,
+    val mimeType: String,
+    val fileSize: Long,
+    val encryptedKey: String,
+    val keyNonce: String,
+    val fileNonce: String,
+    val createdAt: String,
+    val updatedAt: String,
+    val deletedAt: String? = null,
+    val deviceId: String? = null,
+    val lastModifiedDeviceId: String? = null
+)
+
+data class AttachmentDecrypted(
+    val id: String,
+    val entryId: String,
+    val filename: String,
+    val mimeType: String,
+    val fileSize: Long,
+    val createdAt: String,
+    val updatedAt: String
+)
+
+data class MediaItem(
+    val id: String = "",
+    val filename: String,
+    val mimeType: String,
+    val fileSize: Long,
+    val encryptedKey: String,
+    val keyNonce: String,
+    val fileNonce: String,
+    val thumbnailData: String?,
+    val thumbnailNonce: String?,
+    val isFavorite: Boolean = false,
+    val createdAt: String,
+    val updatedAt: String,
+    val deletedAt: String? = null,
+    val deviceId: String? = null,
+    val lastModifiedDeviceId: String? = null
+)
+
+data class MediaItemDecrypted(
+    val id: String,
+    val filename: String,
+    val mimeType: String,
+    val fileSize: Long,
+    val isFavorite: Boolean,
+    val thumbnailBytes: ByteArray?,
+    val createdAt: String,
+    val updatedAt: String
 )

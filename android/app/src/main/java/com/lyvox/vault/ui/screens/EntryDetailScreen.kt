@@ -1,8 +1,11 @@
 package com.lyvox.vault.ui.screens
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,10 +23,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.lyvox.vault.LyvoxApp
 import com.lyvox.vault.crypto.CryptoManager
+import com.lyvox.vault.data.model.AttachmentDecrypted
 import com.lyvox.vault.data.model.Category
 import com.lyvox.vault.data.model.VaultEntryDecrypted
+import com.lyvox.vault.service.AttachmentManager
 import com.lyvox.vault.ui.components.CopyButton
 import com.lyvox.vault.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Entry detail screen — view entry with copy and navigation.
@@ -31,7 +39,7 @@ import com.lyvox.vault.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntryDetailScreen(
-    entryId: Long,
+    entryId: String,
     onEdit: () -> Unit,
     onDeleted: () -> Unit,
     onBack: () -> Unit
@@ -42,9 +50,81 @@ fun EntryDetailScreen(
     val session = app.sessionManager
     val settings = app.settingsRepository
 
+    val attachmentManager = remember {
+        AttachmentManager(context, db, session)
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
     var entry by remember { mutableStateOf<VaultEntryDecrypted?>(null) }
+    var attachments by remember { mutableStateOf<List<AttachmentDecrypted>>(emptyList()) }
+    var selectedAttachment by remember { mutableStateOf<AttachmentDecrypted?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isUploading by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    fun loadAttachments() {
+        try {
+            attachments = attachmentManager.listAttachments(entryId)
+        } catch (_: Exception) {}
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            isUploading = true
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val bytes = inputStream?.readBytes()
+                    if (bytes != null) {
+                        val filename = getFileName(context, uri) ?: "anexo"
+                        val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
+                        attachmentManager.createAttachment(entryId, filename, mimeType, bytes)
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Anexo adicionado com sucesso!", Toast.LENGTH_SHORT).show()
+                            loadAttachments()
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Erro ao ler arquivo.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Erro ao carregar anexo: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                } finally {
+                    isUploading = false
+                }
+            }
+        }
+    }
+
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument(selectedAttachment?.mimeType ?: "*/*")
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedAttachment?.let { att ->
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val decryptedBytes = attachmentManager.getAttachmentData(att.id)
+                        context.contentResolver.openOutputStream(uri)?.use { outStream ->
+                            outStream.write(decryptedBytes)
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Arquivo salvo com sucesso!", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Erro ao salvar anexo: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     LaunchedEffect(entryId) {
         val key = session.getKey() ?: return@LaunchedEffect
@@ -66,6 +146,7 @@ fun EntryDetailScreen(
                     categoryId = raw.categoryId, categoryName = categoryName,
                     createdAt = raw.createdAt, updatedAt = raw.updatedAt
                 )
+                loadAttachments()
             } catch (e: Exception) { /* handled by null entry */ }
         }
         isLoading = false
@@ -263,6 +344,111 @@ fun EntryDetailScreen(
                     }
                 }
 
+                // Seção de Anexos
+                Spacer(modifier = Modifier.height(24.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Anexos e Mídia",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    IconButton(
+                        onClick = { filePickerLauncher.launch("*/*") },
+                        enabled = !isUploading
+                    ) {
+                        if (isUploading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Filled.Add, contentDescription = "Adicionar Anexo", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (attachments.isEmpty()) {
+                    Text(
+                        "Nenhum anexo encontrado.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    attachments.forEach { att ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Attachment,
+                                    contentDescription = "Anexo",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        att.filename,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        "${String.format(java.util.Locale.US, "%.1f", att.fileSize / 1024f)} KB",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        selectedAttachment = att
+                                        saveFileLauncher.launch(att.filename)
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Download,
+                                        contentDescription = "Baixar",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(
+                                    onClick = {
+                                        android.app.AlertDialog.Builder(context)
+                                            .setTitle("Excluir anexo")
+                                            .setMessage("Deseja realmente excluir este anexo?")
+                                            .setPositiveButton("Excluir") { _, _ ->
+                                                attachmentManager.deleteAttachment(att.id)
+                                                loadAttachments()
+                                            }
+                                            .setNegativeButton("Cancelar", null)
+                                            .show()
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Delete,
+                                        contentDescription = "Excluir",
+                                        tint = Danger
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Timestamps
@@ -319,4 +505,29 @@ private fun DetailRow(
             copyButton()
         }
     }
+}
+
+private fun getFileName(context: Context, uri: Uri): String? {
+    var result: String? = null
+    if (uri.scheme == "content") {
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        try {
+            if (cursor != null && cursor.moveToFirst()) {
+                val index = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (index >= 0) {
+                    result = cursor.getString(index)
+                }
+            }
+        } finally {
+            cursor?.close()
+        }
+    }
+    if (result == null) {
+        result = uri.path
+        val cut = result?.lastIndexOf('/') ?: -1
+        if (cut != -1) {
+            result = result?.substring(cut + 1)
+        }
+    }
+    return result
 }

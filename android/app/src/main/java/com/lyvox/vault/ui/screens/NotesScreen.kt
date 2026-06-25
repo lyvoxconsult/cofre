@@ -24,7 +24,7 @@ import com.lyvox.vault.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
-    onNoteClick: (Long) -> Unit,
+    onNoteClick: (String) -> Unit,
     onAddNote: () -> Unit
 ) {
     val app = LyvoxApp.instance

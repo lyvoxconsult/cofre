@@ -1,6 +1,7 @@
 package com.lyvox.vault.data.repository
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.lyvox.vault.data.model.AppConfig
@@ -19,6 +20,8 @@ import java.io.File
 class SettingsRepository(private val context: Context) {
 
     private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("lyvox_prefs", Context.MODE_PRIVATE)
 
     private val configFile: File
         get() = File(context.filesDir.parentFile, "config.json")
@@ -128,8 +131,9 @@ class SettingsRepository(private val context: Context) {
             return RecoveryStatus(false, false, null, 0)
         }
         val now = System.currentTimeMillis() / 1000
-        val blocked = recovery.blockedUntil != null && now < recovery.blockedUntil!!
-        val remaining = if (blocked) (recovery.blockedUntil!! - now) else null
+        val blockedUntil = recovery.blockedUntil
+        val blocked = blockedUntil != null && now < blockedUntil
+        val remaining = if (blocked && blockedUntil != null) (blockedUntil - now) else null
         return RecoveryStatus(true, blocked, remaining, recovery.attempts)
     }
 
@@ -175,4 +179,21 @@ class SettingsRepository(private val context: Context) {
     fun getVerifyToken(): String? = loadConfig().verifyToken
 
     fun getVerifyNonce(): String? = loadConfig().verifyNonce
+
+    // ─── Privacy Mode ──────────────────────────────────────
+
+    /** Privacy mode — hides sensitive fields (login, password) in vault list. */
+    fun getPrivacyMode(): Boolean = prefs.getBoolean("privacy_mode", false)
+
+    fun setPrivacyMode(enabled: Boolean) {
+        prefs.edit().putBoolean("privacy_mode", enabled).apply()
+    }
+
+    // ─── Permissions ────────────────────────────────────────
+
+    fun getHasSeenPermissions(): Boolean = prefs.getBoolean("has_seen_permissions", false)
+
+    fun setHasSeenPermissions(seen: Boolean) {
+        prefs.edit().putBoolean("has_seen_permissions", seen).apply()
+    }
 }

@@ -53,7 +53,10 @@ pub fn generate_password(config: GeneratePasswordRequest) -> Result<PasswordGenR
 
     // Remove ambíguos se solicitado
     let charset: Vec<char> = if config.exclude_ambiguous {
-        charset.chars().filter(|c| !AMBIGUOUS.contains(*c)).collect()
+        charset
+            .chars()
+            .filter(|c| !AMBIGUOUS.contains(*c))
+            .collect()
     } else {
         charset.chars().collect()
     };

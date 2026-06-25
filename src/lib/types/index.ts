@@ -1,18 +1,18 @@
 export interface VaultEntryDecrypted {
-  id: number;
+  id: string;
   service_name: string;
   login: string;
   password: string;
   notes: string;
   url: string;
-  category_id: number | null;
+  category_id: string | null;
   category_name: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface Category {
-  id: number;
+  id: string;
   name: string;
   color: string;
   icon: string;
@@ -29,6 +29,8 @@ export interface AppSettings {
   auto_lock_minutes: number;
   clipboard_clear_seconds: number;
   theme: string;
+  privacy_mode: boolean;
+  read_only_mode: boolean;
   password_gen_defaults: PasswordGenConfig;
 }
 
@@ -56,7 +58,7 @@ export interface QuestionWithOptions {
 }
 
 export interface SecureNoteDecrypted {
-  id: number;
+  id: string;
   title: string;
   content: string;
   category: string;
@@ -64,4 +66,25 @@ export interface SecureNoteDecrypted {
   updated_at: string;
 }
 
-export type ViewTab = "vault" | "generate" | "notes" | "settings";
+export type ViewTab = "vault" | "generate" | "notes" | "settings" | "audit" | "csv_import" | "media";
+
+export interface AttachmentDecrypted {
+  id: string;
+  entry_id: string;
+  filename: string;
+  mime_type: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MediaItemDecrypted {
+  id: string;
+  filename: string;
+  mime_type: string;
+  file_size: number;
+  is_favorite: boolean;
+  thumbnail_base64: string | null;
+  created_at: string;
+  updated_at: string;
+}

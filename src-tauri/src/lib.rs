@@ -45,6 +45,7 @@ pub fn run() {
             commands::session::is_first_run,
             commands::session::check_auto_lock,
             commands::session::record_activity,
+            commands::session::verify_master_password,
             // Generate
             commands::generate::generate_password,
             commands::generate::evaluate_password,
@@ -79,6 +80,22 @@ pub fn run() {
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::update_password_gen_defaults,
+            // Sync
+            commands::sync::export_sync_package,
+            commands::sync::import_sync_package,
+            commands::network_sync::start_sync_server,
+            commands::network_sync::stop_sync_server,
+            // Attachments
+            commands::attachments::create_attachment,
+            commands::attachments::get_attachment_data,
+            commands::attachments::list_attachments,
+            commands::attachments::delete_attachment,
+            // Media
+            commands::media::create_media,
+            commands::media::import_media_from_path,
+            commands::media::get_media_data,
+            commands::media::list_media,
+            commands::media::delete_media,
         ])
         .run(tauri::generate_context!())
         .expect("Erro ao executar lyvox vault");

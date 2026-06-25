@@ -53,6 +53,12 @@ fun BottomNavBar(
                 unselectedIcon = Icons.Outlined.Description
             ),
             NavBarItem(
+                route = "media",
+                label = "Mídias",
+                selectedIcon = Icons.Filled.PhotoLibrary,
+                unselectedIcon = Icons.Outlined.PhotoLibrary
+            ),
+            NavBarItem(
                 route = "settings",
                 label = "Config",
                 selectedIcon = Icons.Filled.Settings,

@@ -6,6 +6,9 @@
   import SecureNotes from "./lib/components/SecureNotes.svelte";
   import GeneratePanel from "./lib/components/GeneratePanel.svelte";
   import SettingsPanel from "./lib/components/SettingsPanel.svelte";
+  import AuditPanel from "./lib/components/AuditPanel.svelte";
+  import CsvImportPanel from "./lib/components/CsvImportPanel.svelte";
+  import MediaVault from "./lib/components/MediaVault.svelte";
   import Toast from "./lib/components/Toast.svelte";
   import type { ViewTab } from "./lib/types";
 
@@ -155,13 +158,13 @@
         </div>
 
         <nav class="nav-tabs">
-          {#each ["vault", "notes", "generate", "settings"] as viewTab}
+          {#each ["vault", "media", "notes", "generate", "settings"] as viewTab}
             <button
               class="nav-tab"
               class:active={tab === viewTab}
               onclick={() => currentTab.set(viewTab as ViewTab)}
             >
-              {viewTab === "vault" ? "Cofre" : viewTab === "notes" ? "Notas" : viewTab === "generate" ? "Gerador" : "Config"}
+              {viewTab === "vault" ? "Cofre" : viewTab === "media" ? "Mídias" : viewTab === "notes" ? "Notas" : viewTab === "generate" ? "Gerador" : "Config"}
             </button>
           {/each}
         </nav>
@@ -176,12 +179,18 @@
       <main class="main-content">
         {#if tab === "vault"}
           <VaultView />
+        {:else if tab === "media"}
+          <MediaVault />
         {:else if tab === "notes"}
           <SecureNotes />
         {:else if tab === "generate"}
           <GeneratePanel />
         {:else if tab === "settings"}
           <SettingsPanel />
+        {:else if tab === "audit"}
+          <AuditPanel />
+        {:else if tab === "csv_import"}
+          <CsvImportPanel />
         {/if}
       </main>
     </div>

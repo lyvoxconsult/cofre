@@ -70,7 +70,10 @@ mod tests {
         let key1 = derive_key("senha_A", &salt).unwrap();
         let key2 = derive_key("senha_B", &salt).unwrap();
 
-        assert_ne!(*key1, *key2, "Senhas diferentes devem produzir chaves diferentes");
+        assert_ne!(
+            *key1, *key2,
+            "Senhas diferentes devem produzir chaves diferentes"
+        );
     }
 
     #[test]
@@ -78,7 +81,10 @@ mod tests {
         let key1 = derive_key("senha", &generate_salt()).unwrap();
         let key2 = derive_key("senha", &generate_salt()).unwrap();
 
-        assert_ne!(*key1, *key2, "Salts diferentes devem produzir chaves diferentes");
+        assert_ne!(
+            *key1, *key2,
+            "Salts diferentes devem produzir chaves diferentes"
+        );
     }
 
     #[test]

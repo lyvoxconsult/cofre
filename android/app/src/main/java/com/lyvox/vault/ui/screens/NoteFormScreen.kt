@@ -22,7 +22,7 @@ import com.lyvox.vault.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteFormScreen(
-    noteId: Long?,
+    noteId: String?,
     onSaved: () -> Unit,
     onBack: () -> Unit
 ) {

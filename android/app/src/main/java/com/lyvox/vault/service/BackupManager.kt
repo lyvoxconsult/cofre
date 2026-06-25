@@ -27,7 +27,7 @@ data class BackupEntry(
     val password: String,
     val notes: String,
     val url: String,
-    val category_id: Long?
+    val category_id: String?
 )
 
 data class BackupNote(

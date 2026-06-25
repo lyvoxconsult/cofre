@@ -28,7 +28,10 @@ import com.lyvox.vault.ui.theme.*
 @Composable
 fun SettingsScreen(
     onNavigateToRecoverySetup: () -> Unit,
-    onNavigateToBackup: () -> Unit
+    onNavigateToBackup: () -> Unit,
+    onNavigateToAudit: () -> Unit,
+    onNavigateToCsvImport: () -> Unit,
+    onNavigateToSync: () -> Unit
 ) {
     val context = LocalContext.current
     val app = LyvoxApp.instance
@@ -38,6 +41,7 @@ fun SettingsScreen(
     var config by remember { mutableStateOf(settings.loadConfig()) }
     var showBiometricDialog by remember { mutableStateOf(false) }
     var showDeleteAllDialog by remember { mutableStateOf(false) }
+    var privacyMode by remember { mutableStateOf(settings.getPrivacyMode()) }
     var confirmMasterPassword by remember { mutableStateOf("") }
     var confirmMasterPassword2 by remember { mutableStateOf("") }
     var deleteErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -524,6 +528,93 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // ── Segurança Avançada ─────────────────────────────
+        SectionHeader("Segurança Avançada")
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column {
+                // Audit
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.Shield, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Auditoria de senhas",
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Identifica senhas fracas, reutilizadas e antigas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = onNavigateToAudit) {
+                        Icon(Icons.Filled.ChevronRight, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // CSV Import
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.TableChart, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Importar CSV",
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Chrome, Bitwarden, 1Password e outros",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = onNavigateToCsvImport) {
+                        Icon(Icons.Filled.ChevronRight, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // Privacy Mode
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.VisibilityOff, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Modo Privacidade",
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Oculta logins e senhas nas listas",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = privacyMode,
+                        onCheckedChange = {
+                            privacyMode = it
+                            settings.setPrivacyMode(it)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         // ── Backup ─────────────────────────────────────────
         SectionHeader("Backup")
 
@@ -544,6 +635,36 @@ fun SettingsScreen(
                     Text("Exportar / Importar", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface)
                     Text("Fazer backup criptografado dos dados",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.Filled.ChevronRight, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Sincronização ──────────────────────────────────
+        SectionHeader("Sincronização")
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            onClick = onNavigateToSync,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Sync, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sincronizar com Desktop", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Text("Conectar com Lyvox Vault no PC",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

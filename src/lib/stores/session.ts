@@ -1,9 +1,9 @@
 import { writable } from "svelte/store";
 
 export const isUnlocked = writable<boolean>(false);
-export const currentTab = writable<"vault" | "notes" | "generate" | "settings">("vault");
+export const currentTab = writable<"vault" | "notes" | "generate" | "settings" | "audit" | "csv_import">("vault");
 export const searchQuery = writable<string>("");
-export const selectedEntryId = writable<number | null>(null);
+export const selectedEntryId = writable<string | null>(null);
 export const toastMessage = writable<{ text: string; type: "success" | "error" | "info" } | null>(null);
 
 /** Sinal para focar o campo de busca no cofre (incrementado a cada atalho) */

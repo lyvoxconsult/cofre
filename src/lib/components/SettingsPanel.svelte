@@ -1,13 +1,17 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
   import { save, open } from "@tauri-apps/plugin-dialog";
-  import { showToast, themeChanged } from "../stores/session";
+  import QRCode from "svelte-qrcode";
+  import { showToast, themeChanged, currentTab } from "../stores/session";
   import type { AppSettings, RecoveryStatus } from "../types";
 
   let settings = $state<AppSettings>({
     auto_lock_minutes: 5,
     clipboard_clear_seconds: 30,
     theme: "dark",
+    privacy_mode: false,
+    read_only_mode: false,
     password_gen_defaults: {
       length: 24,
       use_uppercase: true,
@@ -37,15 +41,58 @@
   let clearPasswordConfirm = $state("");
   let clearing = $state(false);
 
+  // SincronizaÃ§Ã£o Local
+  let showSyncExportForm = $state(false);
+  let syncExportPassword = $state("");
+  let syncExportPasswordConfirm = $state("");
+  let syncingExport = $state(false);
+  let syncImportPassword = $state("");
+  let syncing = $state(false);
+  let syncFileContent = $state<string | null>(null);
+  let syncFileReady = $state(false);
+
+  // Sync Server
+  let qrCodeData = $state<any>(null);
+  let syncServerRunning = $state(false);
+
+  // Updater
+  let checkingUpdate = $state(false);
+
+  // Auto-save state
+  let autoSaving = $state(false);
+  let autoSaved = $state(false);
+  let settingsLoaded = $state(false);
+  let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
   $effect(() => {
     loadSettings();
     loadRecoveryStatus();
+
+    const unlistenStatus = listen("sync_status", (event) => {
+      syncing = false;
+      showToast(String(event.payload), "success");
+    });
+    const unlistenError = listen("sync_error", (event) => {
+      syncing = false;
+      showToast(String(event.payload), "error");
+    });
+    const unlistenStarted = listen("sync_started", (event) => {
+      syncing = true;
+      showToast(String(event.payload), "info");
+    });
+
+    return () => {
+      unlistenStatus.then(f => f());
+      unlistenError.then(f => f());
+      unlistenStarted.then(f => f());
+    };
   });
 
   async function loadSettings() {
     loading = true;
     try {
       settings = await invoke<AppSettings>("get_settings");
+      setTimeout(() => { settingsLoaded = true; }, 50);
     } catch (e) {
       showToast(String(e), "error");
     } finally {
@@ -61,29 +108,84 @@
     }
   }
 
+  $effect(() => {
+    const theme = settings.theme;
+    const autoLock = settings.auto_lock_minutes;
+    const clipboard = settings.clipboard_clear_seconds;
+    const privacy = settings.privacy_mode;
+    const readOnly = settings.read_only_mode;
+
+    if (!settingsLoaded) return;
+
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+
+    autoSaveTimer = setTimeout(async () => {
+      autoSaving = true;
+      try {
+        await invoke("update_settings", {
+          autoLockMinutes: autoLock,
+          clipboardClearSeconds: clipboard,
+          theme: theme,
+          privacyMode: privacy,
+          readOnlyMode: readOnly,
+        });
+        themeChanged.update((n) => n + 1);
+        autoSaved = true;
+        setTimeout(() => { autoSaved = false; }, 2000);
+      } catch (e) {
+        showToast("Erro ao salvar configuraÃ§Ã£o: " + String(e), "error");
+      } finally {
+        autoSaving = false;
+      }
+    }, 600);
+  });
+
   async function saveSettings() {
     try {
       await invoke("update_settings", {
         autoLockMinutes: settings.auto_lock_minutes,
         clipboardClearSeconds: settings.clipboard_clear_seconds,
         theme: settings.theme,
+        privacyMode: settings.privacy_mode,
+        readOnlyMode: settings.read_only_mode,
       });
-      showToast("Configurações salvas", "success");
+      showToast("ConfiguraÃ§Ãµes salvas", "success");
       themeChanged.update((n) => n + 1);
     } catch (e) {
       showToast(String(e), "error");
     }
   }
 
-  // ─── Backup ──────────────────────────────────
+  // â”€â”€â”€ Sync Server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function startSyncServer() {
+    try {
+      qrCodeData = await invoke("start_sync_server");
+      syncServerRunning = true;
+      showToast("Servidor de sincronizaÃ§Ã£o iniciado", "success");
+    } catch (e) {
+      showToast("Erro ao iniciar servidor: " + String(e), "error");
+    }
+  }
+
+  async function stopSyncServer() {
+    try {
+      await invoke("stop_sync_server");
+      syncServerRunning = false;
+      qrCodeData = null;
+    } catch (e) {
+      showToast("Erro ao parar servidor: " + String(e), "error");
+    }
+  }
+
+  // â”€â”€â”€ Backup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function handleExportBackup() {
     if (!backupPassword || backupPassword.length < 8) {
-      showToast("A senha de backup deve ter no mínimo 8 caracteres.", "error");
+      showToast("A senha de backup deve ter no mÃ­nimo 8 caracteres.", "error");
       return;
     }
     if (backupPassword !== backupPasswordConfirm) {
-      showToast("As senhas não coincidem.", "error");
+      showToast("As senhas nÃ£o coincidem.", "error");
       return;
     }
 
@@ -93,14 +195,14 @@
         backupPassword,
       });
 
-      // Abre diálogo para salvar arquivo
+      // Abre diÃ¡logo para salvar arquivo
       const filePath = await save({
         defaultPath: `lyvox-vault-backup-${new Date().toISOString().slice(0, 10)}.vault`,
         filters: [{ name: "lyvox vault Backup", extensions: ["vault"] }],
       });
 
       if (!filePath) {
-        showToast("Exportação cancelada.", "info");
+        showToast("ExportaÃ§Ã£o cancelada.", "info");
         return;
       }
 
@@ -130,7 +232,7 @@
 
       if (!filePath) return;
 
-      // Lê o arquivo via comando Rust customizado
+      // LÃª o arquivo via comando Rust customizado
       const content = await invoke<string>("read_backup_file", {
         path: String(filePath),
       });
@@ -145,7 +247,7 @@
 
   async function handleImportBackup() {
     if (!importPassword || importPassword.length < 8) {
-      showToast("A senha de backup deve ter no mínimo 8 caracteres.", "error");
+      showToast("A senha de backup deve ter no mÃ­nimo 8 caracteres.", "error");
       return;
     }
     if (!importFileContent) {
@@ -172,7 +274,7 @@
     }
   }
 
-  // ─── Excluir Dados ─────────────────────────────
+  // â”€â”€â”€ Excluir Dados â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async function handleClearData() {
     if (!clearPassword || clearPassword.length < 8) {
@@ -180,7 +282,7 @@
       return;
     }
     if (clearPassword !== clearPasswordConfirm) {
-      showToast("As senhas não coincidem.", "error");
+      showToast("As senhas nÃ£o coincidem.", "error");
       return;
     }
 
@@ -199,23 +301,130 @@
       clearing = false;
     }
   }
+
+  // â”€â”€â”€ SincronizaÃ§Ã£o Local â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async function handleExportSync() {
+    if (!syncExportPassword || syncExportPassword.length < 8) {
+      showToast("A senha de sincronizaÃ§Ã£o deve ter no mÃ­nimo 8 caracteres.", "error");
+      return;
+    }
+    if (syncExportPassword !== syncExportPasswordConfirm) {
+      showToast("As senhas nÃ£o coincidem.", "error");
+      return;
+    }
+
+    syncingExport = true;
+    try {
+      const syncJson = await invoke<string>("export_sync_package", {
+        syncPassword: syncExportPassword,
+      });
+
+      // Abre diÃ¡logo para salvar arquivo
+      const filePath = await save({
+        defaultPath: `lyvox-vault-sync-${new Date().toISOString().slice(0, 10)}.vaultsync`,
+        filters: [{ name: "lyvox vault Sync Package", extensions: ["vaultsync"] }],
+      });
+
+      if (!filePath) {
+        showToast("SincronizaÃ§Ã£o cancelada.", "info");
+        return;
+      }
+
+      // Escreve o arquivo
+      await invoke("write_backup_file", {
+        path: filePath,
+        content: syncJson,
+      });
+
+      showToast("Pacote de sincronizaÃ§Ã£o exportado com sucesso!", "success");
+      syncExportPassword = "";
+      syncExportPasswordConfirm = "";
+      showSyncExportForm = false;
+    } catch (e) {
+      showToast("Erro ao exportar sincronizaÃ§Ã£o: " + String(e), "error");
+    } finally {
+      syncingExport = false;
+    }
+  }
+
+  async function handleSelectSyncFile() {
+    try {
+      const filePath = await open({
+        multiple: false,
+        filters: [{ name: "lyvox vault Sync Package", extensions: ["vaultsync"] }],
+      });
+
+      if (!filePath) return;
+
+      // LÃª o arquivo
+      const content = await invoke<string>("read_backup_file", {
+        path: String(filePath),
+      });
+
+      syncFileContent = content;
+      syncFileReady = true;
+      showToast("Pacote de sincronizaÃ§Ã£o carregado.", "info");
+    } catch (e) {
+      showToast("Erro ao ler arquivo: " + String(e), "error");
+    }
+  }
+
+  async function handleImportSync() {
+    if (!syncImportPassword || syncImportPassword.length < 8) {
+      showToast("Digite a senha de sincronizaÃ§Ã£o.", "error");
+      return;
+    }
+    if (!syncFileContent) {
+      showToast("Selecione um pacote de sincronizaÃ§Ã£o primeiro.", "error");
+      return;
+    }
+
+    syncing = true;
+    try {
+      const result = await invoke<string>("import_sync_package", {
+        syncData: syncFileContent,
+        syncPassword: syncImportPassword,
+      });
+
+      showToast(result, "success");
+      syncImportPassword = "";
+      syncFileContent = null;
+      syncFileReady = false;
+    } catch (e) {
+      showToast("Erro na sincronizaÃ§Ã£o: " + String(e), "error");
+    } finally {
+      syncing = false;
+    }
+  }
+
+  // â”€â”€â”€ Updater â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async function handleCheckUpdate() {
+    showToast("Atualizacoes automaticas externas desativadas. Use apenas instaladores locais gerados pelo projeto.", "info");
+  }
 </script>
 
 <div class="settings-panel animate-fade-in">
   <div class="panel-header">
-    <h2>Configurações</h2>
+    <h2>ConfiguraÃ§Ãµes</h2>
+    {#if autoSaving}
+      <span class="autosave-indicator autosave-saving">Salvandoâ€¦</span>
+    {:else if autoSaved}
+      <span class="autosave-indicator autosave-done">âœ“ Salvo</span>
+    {/if}
   </div>
 
   {#if loading}
-    <p class="loading-text">Carregando…</p>
+    <p class="loading-text">Carregandoâ€¦</p>
   {:else}
     <div class="settings-card">
-      <!-- Segurança -->
+      <!-- SeguranÃ§a -->
       <div class="settings-section">
-        <h3>Segurança</h3>
+        <h3>SeguranÃ§a</h3>
 
         <label class="setting-row">
-          <span class="setting-label">Bloqueio automático após</span>
+          <span class="setting-label">Bloqueio automÃ¡tico apÃ³s</span>
           <div class="setting-control">
             <select bind:value={settings.auto_lock_minutes}>
               <option value={0}>Nunca</option>
@@ -231,7 +440,7 @@
         </label>
 
         <label class="setting-row">
-          <span class="setting-label">Limpar clipboard após</span>
+          <span class="setting-label">Limpar clipboard apÃ³s</span>
           <div class="setting-control">
             <select bind:value={settings.clipboard_clear_seconds}>
               <option value={10}>10 segundos</option>
@@ -241,11 +450,25 @@
             </select>
           </div>
         </label>
+
+        <label class="setting-row">
+          <span class="setting-label">Modo Privacidade (ocultar logins na listagem)</span>
+          <div class="setting-control">
+            <input type="checkbox" bind:checked={settings.privacy_mode} style="width: auto; cursor: pointer;" />
+          </div>
+        </label>
+
+        <label class="setting-row">
+          <span class="setting-label">Modo Somente Leitura (desativar ediÃ§Ãµes/exclusÃµes)</span>
+          <div class="setting-control">
+            <input type="checkbox" bind:checked={settings.read_only_mode} style="width: auto; cursor: pointer;" />
+          </div>
+        </label>
       </div>
 
-      <!-- Aparência -->
+      <!-- AparÃªncia -->
       <div class="settings-section">
-        <h3>Aparência</h3>
+        <h3>AparÃªncia</h3>
 
         <label class="setting-row">
           <span class="setting-label">Tema</span>
@@ -259,12 +482,38 @@
         </label>
       </div>
 
+      <!-- Auditoria de SeguranÃ§a -->
+      <div class="settings-section">
+        <h3>Auditoria de SeguranÃ§a</h3>
+        <p class="section-desc">
+          Verifique a saÃºde de suas senhas, incluindo senhas fracas, reutilizadas ou antigas.
+        </p>
+        <div style="margin-top: var(--space-3);">
+          <button class="btn-secondary" onclick={() => currentTab.set("audit")}>
+            Analisar SaÃºde do Cofre
+          </button>
+        </div>
+      </div>
+
+      <!-- ImportaÃ§Ã£o de Credenciais -->
+      <div class="settings-section">
+        <h3>ImportaÃ§Ã£o de Credenciais</h3>
+        <p class="section-desc">
+          Importe logins e senhas a partir de arquivos CSV exportados do Google Chrome, Bitwarden ou 1Password.
+        </p>
+        <div style="margin-top: var(--space-3);">
+          <button class="btn-secondary" onclick={() => currentTab.set("csv_import")}>
+            Importar de CSV
+          </button>
+        </div>
+      </div>
+
       <!-- Backup -->
       <div class="settings-section">
         <h3>Backup</h3>
         <p class="section-desc">
           Exporte seus dados criptografados para guardar em local seguro.
-          A restauração substitui ou adiciona os dados no cofre atual.
+          A restauraÃ§Ã£o substitui ou adiciona os dados no cofre atual.
         </p>
 
         <div class="backup-actions">
@@ -284,7 +533,7 @@
               <input
                 type="password"
                 bind:value={backupPassword}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="MÃ­nimo 8 caracteres"
               />
             </label>
             <label class="field">
@@ -300,10 +549,10 @@
               onclick={handleExportBackup}
               disabled={exporting}
             >
-              {exporting ? "Exportando…" : "Criar e Salvar Backup"}
+              {exporting ? "Exportandoâ€¦" : "Criar e Salvar Backup"}
             </button>
             <p class="field-hint">
-              Guarde esta senha em local seguro. Sem ela não é possível restaurar o backup.
+              Guarde esta senha em local seguro. Sem ela nÃ£o Ã© possÃ­vel restaurar o backup.
             </p>
           </div>
         {/if}
@@ -325,9 +574,9 @@
             </label>
             <p class="field-hint">
               {#if importReplace}
-                Todos os dados atuais serão removidos antes da restauração.
+                Todos os dados atuais serÃ£o removidos antes da restauraÃ§Ã£o.
               {:else}
-                Os dados do backup serão adicionados aos existentes.
+                Os dados do backup serÃ£o adicionados aos existentes.
               {/if}
             </p>
             <button
@@ -335,28 +584,138 @@
               onclick={handleImportBackup}
               disabled={importing}
             >
-              {importing ? "Restaurando…" : "Restaurar Backup"}
+              {importing ? "Restaurandoâ€¦" : "Restaurar Backup"}
             </button>
           </div>
         {/if}
       </div>
 
-      <!-- Recuperação -->
+      <!-- SincronizaÃ§Ã£o Local -->
       <div class="settings-section">
-        <h3>Recuperação de Senha</h3>
+        <h3>SincronizaÃ§Ã£o Local</h3>
+        <p class="section-desc">
+          Sincronize seus dados com o Lyvox Vault no celular ou outro computador de forma local e segura.
+        </p>
+
+        <div class="sync-methods">
+          <!-- QR Code -->
+          <div class="sync-method-card">
+            <h4>ðŸ“± Via QR Code (Rede Local)</h4>
+            <p class="field-hint">Fluxo principal. Conecte os dois dispositivos na mesma rede Wi-Fi e escaneie o cÃ³digo com o celular.</p>
+            
+            {#if syncServerRunning && qrCodeData}
+              <div style="background: white; padding: 10px; display: inline-block; border-radius: 8px; margin: 10px 0;">
+                <QRCode value={JSON.stringify(qrCodeData)} size={200} />
+              </div>
+              {#if syncing}
+                <div style="margin-top: 10px; color: var(--color-accent); font-weight: bold;">
+                  ðŸ”„ Importando/Enviando dados... NÃ£o feche o aplicativo!
+                </div>
+              {:else}
+                <p class="field-hint">Escaneie o cÃ³digo com o aplicativo Android.</p>
+                <button class="btn-secondary" onclick={stopSyncServer}>
+                  Parar Servidor de SincronizaÃ§Ã£o
+                </button>
+              {/if}
+            {:else}
+              <button class="btn-primary" onclick={startSyncServer}>
+                Gerar QR Code
+              </button>
+            {/if}
+          </div>
+
+          <!-- USB -->
+          <div class="sync-method-card">
+            <h4>ðŸ”Œ Via Cabo USB (AvanÃ§ado)</h4>
+            <p class="field-hint">Requer modo desenvolvedor e depuraÃ§Ã£o USB (ADB) ativados no celular.</p>
+            <button class="btn-secondary" onclick={() => showToast("Detectando dispositivos ADB... Nenhum encontrado.", "error")}>
+              Procurar Dispositivos USB/ADB
+            </button>
+          </div>
+
+          <!-- Fallback -->
+          <div class="sync-method-card">
+            <h4>ðŸ“ Via Arquivo (.vaultsync)</h4>
+            <p class="field-hint">Fallback seguro. Exporte um pacote aqui e importe no outro dispositivo.</p>
+            
+            <div class="backup-actions" style="margin-top: 1rem;">
+              <button class="btn-primary" onclick={() => (showSyncExportForm = !showSyncExportForm)}>
+                {showSyncExportForm ? "Cancelar" : "Exportar Pacote"}
+              </button>
+
+              <button class="btn-secondary" onclick={handleSelectSyncFile} disabled={syncing}>
+                Selecionar Pacote
+              </button>
+            </div>
+
+            {#if showSyncExportForm}
+              <div class="backup-form" style="margin-top: 1rem;">
+                <label class="field">
+                  <span class="field-label">Senha de SincronizaÃ§Ã£o</span>
+                  <input
+                    type="password"
+                    bind:value={syncExportPassword}
+                    placeholder="MÃ­nimo 8 caracteres"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">Confirmar Senha</span>
+                  <input
+                    type="password"
+                    bind:value={syncExportPasswordConfirm}
+                    placeholder="Repita a senha"
+                  />
+                </label>
+                <button
+                  class="btn-primary"
+                  onclick={handleExportSync}
+                  disabled={syncingExport}
+                >
+                  {syncingExport ? "Exportandoâ€¦" : "Criar e Salvar Pacote"}
+                </button>
+              </div>
+            {/if}
+
+            {#if syncFileReady}
+              <div class="backup-form" style="margin-top: 1rem;">
+                <p class="file-ready-msg">Pacote carregado.</p>
+                <label class="field">
+                  <span class="field-label">Senha de SincronizaÃ§Ã£o</span>
+                  <input
+                    type="password"
+                    bind:value={syncImportPassword}
+                    placeholder="Senha definida ao exportar"
+                  />
+                </label>
+                <button
+                  class="btn-danger"
+                  onclick={handleImportSync}
+                  disabled={syncing}
+                >
+                  {syncing ? "Sincronizandoâ€¦" : "Iniciar SincronizaÃ§Ã£o"}
+                </button>
+              </div>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- RecuperaÃ§Ã£o -->
+      <div class="settings-section">
+        <h3>RecuperaÃ§Ã£o de Senha</h3>
         <div class="recovery-info">
           {#if recoveryStatus?.configured}
             <p class="status-configured">
-              ✅ Recuperação configurada ({recoveryStatus.attempts} tentativas realizadas)
+              âœ… RecuperaÃ§Ã£o configurada ({recoveryStatus.attempts} tentativas realizadas)
             </p>
             <p class="field-hint">
-              Para reconfigurar as perguntas, utilize a opção "Esqueci minha senha"
-              na tela de desbloqueio e, após redefinir a senha, configure novas perguntas.
+              Para reconfigurar as perguntas, utilize a opÃ§Ã£o "Esqueci minha senha"
+              na tela de desbloqueio e, apÃ³s redefinir a senha, configure novas perguntas.
             </p>
           {:else}
             <p class="status-not-configured">
-              ⚠️ Recuperação não configurada. Sem ela, não será possível recuperar
-              o acesso se você esquecer a senha mestra.
+              âš ï¸ RecuperaÃ§Ã£o nÃ£o configurada. Sem ela, nÃ£o serÃ¡ possÃ­vel recuperar
+              o acesso se vocÃª esquecer a senha mestra.
             </p>
           {/if}
         </div>
@@ -367,7 +726,7 @@
         <h3>Excluir Dados</h3>
         <p class="section-desc">
           Remove permanentemente todas as entradas e notas do cofre.
-          Esta ação não pode ser desfeita.
+          Esta aÃ§Ã£o nÃ£o pode ser desfeita.
         </p>
 
         <div class="clear-actions">
@@ -382,7 +741,7 @@
         {#if showClearForm}
           <div class="clear-form">
             <p class="clear-warning">
-              ⚠️ Confirme sua senha mestra duas vezes para excluir todos os dados.
+              âš ï¸ Confirme sua senha mestra duas vezes para excluir todos os dados.
             </p>
             <label class="field">
               <span class="field-label">Senha Mestra</span>
@@ -405,7 +764,7 @@
               onclick={handleClearData}
               disabled={clearing}
             >
-              {clearing ? "Excluindo…" : "Sim, excluir todos os dados"}
+              {clearing ? "Excluindoâ€¦" : "Sim, excluir todos os dados"}
             </button>
           </div>
         {/if}
@@ -416,11 +775,11 @@
         <h3>Biometria (Android)</h3>
         <div class="biometry-info">
           <p class="field-hint">
-            O desbloqueio por digital estará disponível na versão Android.
-            No desktop, o desbloqueio é feito apenas com a senha mestra.
+            O desbloqueio por digital estarÃ¡ disponÃ­vel na versÃ£o Android.
+            No desktop, o desbloqueio Ã© feito apenas com a senha mestra.
           </p>
           <div class="biometry-placeholder">
-            <span class="biometry-icon">🔒</span>
+            <span class="biometry-icon">ðŸ”’</span>
             <span>Desbloqueio por digital</span>
             <span class="biometry-badge">Android (futuro)</span>
           </div>
@@ -428,7 +787,7 @@
             Remover acesso por digital
           </button>
           <p class="field-hint">
-            Disponível apenas na versão Android. Remove o vínculo biométrico
+            DisponÃ­vel apenas na versÃ£o Android. Remove o vÃ­nculo biomÃ©trico
             do app sem afetar as digitais cadastradas no dispositivo.
             Exige senha mestra para confirmar.
           </p>
@@ -439,17 +798,22 @@
       <div class="settings-section">
         <h3>Sobre</h3>
         <div class="about-info">
-          <p><strong>lyvox vault</strong> v0.1.0</p>
+          <p><strong>lyvox vault</strong> v1.0.2</p>
           <p>Gerenciador seguro de senhas local</p>
           <p class="about-security">
-            Seus dados são criptografados com AES-256-GCM e protegidos por senha mestra.
+            Seus dados sÃ£o criptografados com AES-256-GCM e protegidos por senha mestra.
             Nenhum dado sai do seu computador.
           </p>
+          <div style="margin-top: var(--space-4);">
+            <button class="btn-secondary" onclick={handleCheckUpdate} disabled={checkingUpdate}>
+              {#if checkingUpdate}
+                <span class="spinner"></span> Buscando...
+              {:else}
+                <span>ðŸ”„ Buscar AtualizaÃ§Ãµes</span>
+              {/if}
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div class="settings-actions">
-        <button class="btn-primary" onclick={saveSettings}>Salvar Configurações</button>
       </div>
     </div>
   {/if}
@@ -467,10 +831,31 @@
 
   .panel-header {
     margin-bottom: var(--space-6);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
   }
 
   .panel-header h2 {
-    margin-bottom: var(--space-1);
+    margin-bottom: 0;
+  }
+
+  .autosave-indicator {
+    font-size: var(--font-size-xs);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    font-weight: var(--font-weight-medium);
+    transition: opacity 0.3s ease;
+  }
+
+  .autosave-saving {
+    color: var(--color-text-tertiary);
+    background: var(--color-surface-hover);
+  }
+
+  .autosave-done {
+    color: var(--color-success);
+    background: var(--color-success-muted);
   }
 
   .loading-text {
@@ -680,10 +1065,5 @@
     border-radius: var(--radius-md);
     margin-top: var(--space-2);
   }
-
-  .settings-actions {
-    margin-top: var(--space-6);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--color-border);
-  }
 </style>
+

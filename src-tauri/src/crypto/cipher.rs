@@ -72,8 +72,10 @@ pub fn encrypt_field(
     plaintext: &str,
 ) -> Result<(String, String), String> {
     let (ciphertext, nonce) = encrypt(key, plaintext.as_bytes())?;
-    Ok((base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &ciphertext),
-        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &nonce)))
+    Ok((
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &ciphertext),
+        base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &nonce),
+    ))
 }
 
 /// Descriptografa um campo de texto
@@ -89,7 +91,7 @@ pub fn decrypt_field(
     let nonce_bytes = base64::engine::general_purpose::STANDARD
         .decode(nonce_b64)
         .map_err(|e| format!("Erro ao decodificar nonce base64: {e}"))?;
-    
+
     if nonce_bytes.len() != NONCE_LENGTH {
         return Err("Nonce inválido".to_string());
     }
@@ -153,7 +155,10 @@ mod tests {
         let (ciphertext, nonce) = encrypt(&key1, b"dados_secretos").unwrap();
         let result = decrypt(&key2, &ciphertext, &nonce);
 
-        assert!(result.is_err(), "Chave errada deve falhar na descriptografia");
+        assert!(
+            result.is_err(),
+            "Chave errada deve falhar na descriptografia"
+        );
     }
 
     #[test]
@@ -165,7 +170,10 @@ mod tests {
         ciphertext[0] ^= 0xFF;
 
         let result = decrypt(&key, &ciphertext, &nonce);
-        assert!(result.is_err(), "Dados adulterados devem falhar na descriptografia");
+        assert!(
+            result.is_err(),
+            "Dados adulterados devem falhar na descriptografia"
+        );
     }
 
     #[test]

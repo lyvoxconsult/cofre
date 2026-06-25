@@ -67,6 +67,7 @@ impl Default for RecoveryConfig {
 /// Configuração do aplicativo armazenada em disco (não criptografada).
 /// Contém apenas metadados não sensíveis.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AppConfig {
     /// Salt para derivação de chave (hex)
     pub salt: Option<String>,
@@ -76,6 +77,10 @@ pub struct AppConfig {
     pub clipboard_clear_seconds: u32,
     /// Tema: "dark", "light", "system"
     pub theme: String,
+    /// Modo de privacidade (oculta senhas na listagem)
+    pub privacy_mode: bool,
+    /// Modo somente leitura (impede edições)
+    pub read_only_mode: bool,
     /// Configurações padrão do gerador de senhas
     pub password_gen_length: u8,
     pub password_gen_uppercase: bool,
@@ -95,6 +100,8 @@ impl Default for AppConfig {
             auto_lock_minutes: 5,
             clipboard_clear_seconds: 30,
             theme: "dark".to_string(),
+            privacy_mode: false,
+            read_only_mode: false,
             password_gen_length: 24,
             password_gen_uppercase: true,
             password_gen_lowercase: true,
@@ -149,7 +156,10 @@ impl ConfigState {
     where
         F: FnOnce(&mut AppConfig) -> Result<T, String>,
     {
-        let mut guard = self.config.lock().map_err(|e| format!("Erro de lock: {e}"))?;
+        let mut guard = self
+            .config
+            .lock()
+            .map_err(|e| format!("Erro de lock: {e}"))?;
         let result = f(&mut guard)?;
         // Auto-save após modificação
         guard.save(&self.path)?;
@@ -160,7 +170,10 @@ impl ConfigState {
     where
         F: FnOnce(&AppConfig) -> T,
     {
-        let guard = self.config.lock().map_err(|e| format!("Erro de lock: {e}"))?;
+        let guard = self
+            .config
+            .lock()
+            .map_err(|e| format!("Erro de lock: {e}"))?;
         Ok(f(&guard))
     }
 }

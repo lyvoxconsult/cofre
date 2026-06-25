@@ -9,9 +9,9 @@
   let categories = $state<Category[]>([]);
   let loading = $state(false);
   let query = $state("");
-  let selectedId = $state<number | null>(null);
+  let selectedId = $state<string | null>(null);
   let showForm = $state(false);
-  let filterCategory = $state<number | null>(null);
+  let filterCategory = $state<string | null>(null);
   let searchInput: HTMLInputElement | undefined = $state(undefined);
   let focusTick = $state(0);
 
@@ -44,6 +44,9 @@
     if (filterCategory !== null) {
       result = result.filter((e) => e.category_id === filterCategory);
     }
+    if (filterFavorites) {
+      result = result.filter((e) => e.is_favorite);
+    }
     return result;
   });
 
@@ -64,17 +67,31 @@
     } catch {
       // fallback categories
       categories = [
-        { id: 1, name: "Pessoal", color: "#6366f1", icon: "user", sort_order: 0 },
-        { id: 2, name: "Trabalho", color: "#f59e0b", icon: "briefcase", sort_order: 1 },
-        { id: 3, name: "Bancos", color: "#10b981", icon: "landmark", sort_order: 2 },
-        { id: 4, name: "Outros", color: "#6b7280", icon: "folder", sort_order: 3 },
+        { id: "1", name: "Pessoal", color: "#6366f1", icon: "user", sort_order: 0 },
+        { id: "2", name: "Trabalho", color: "#f59e0b", icon: "briefcase", sort_order: 1 },
+        { id: "3", name: "Bancos", color: "#10b981", icon: "landmark", sort_order: 2 },
+        { id: "4", name: "Outros", color: "#6b7280", icon: "folder", sort_order: 3 },
       ];
+    }
+  }
+
+  let privacyMode = $state(false);
+  let readOnlyMode = $state(false);
+
+  async function loadConfig() {
+    try {
+      const cfg = await invoke<any>("get_settings");
+      privacyMode = cfg.privacy_mode;
+      readOnlyMode = cfg.read_only_mode;
+    } catch {
+      // ignore
     }
   }
 
   $effect(() => {
     loadEntries();
     loadCategories();
+    loadConfig();
   });
 
   function handleSearchInput(e: Event) {
@@ -83,10 +100,13 @@
     searchQuery.set(query);
   }
 
-  function selectEntry(id: number) {
+  function selectEntry(id: string) {
     selectedId = id;
     selectedEntryId.set(id);
   }
+
+  // Favoritos
+  let filterFavorites = $state(false);
 
   function handleCreated() {
     showForm = false;
@@ -106,12 +126,12 @@
     showToast("Registro atualizado", "success");
   }
 
-  function getCategoryColor(id: number | null): string {
+  function getCategoryColor(id: string | null): string {
     if (id === null) return "#6b7280";
     return categories.find((c) => c.id === id)?.color ?? "#6b7280";
   }
 
-  function getCategoryName(id: number | null): string {
+  function getCategoryName(id: string | null): string {
     if (id === null) return "Sem categoria";
     return categories.find((c) => c.id === id)?.name ?? "Desconhecida";
   }
@@ -126,18 +146,27 @@
     <div class="category-list">
       <button
         class="category-item"
-        class:active={filterCategory === null}
-        onclick={() => (filterCategory = null)}
+        class:active={filterCategory === null && !filterFavorites}
+        onclick={() => { filterCategory = null; filterFavorites = false; }}
       >
         <span class="cat-dot" style="background: #6b7280"></span>
         <span>Todas</span>
         <span class="cat-count">{entries.length}</span>
       </button>
+      <button
+        class="category-item"
+        class:active={filterFavorites}
+        onclick={() => { filterCategory = null; filterFavorites = true; }}
+      >
+        <span class="cat-dot" style="background: #e11d48"></span>
+        <span>⭐ Favoritos</span>
+        <span class="cat-count">{entries.filter((e) => e.is_favorite).length}</span>
+      </button>
       {#each categories as cat}
         <button
           class="category-item"
-          class:active={filterCategory === cat.id}
-          onclick={() => (filterCategory = cat.id)}
+          class:active={filterCategory === cat.id && !filterFavorites}
+          onclick={() => { filterCategory = cat.id; filterFavorites = false; }}
         >
           <span class="cat-dot" style="background: {cat.color}"></span>
           <span>{cat.name}</span>
@@ -146,7 +175,7 @@
       {/each}
     </div>
     <div class="sidebar-footer">
-      <button class="btn-primary btn-sm" onclick={() => (showForm = true)}>
+      <button class="btn-primary btn-sm" onclick={() => (showForm = true)} disabled={readOnlyMode}>
         + Novo Registro
       </button>
     </div>
@@ -173,7 +202,7 @@
       {:else if filteredEntries.length === 0}
         <div class="list-empty">
           <p>Nenhum registro encontrado</p>
-          <button class="btn-secondary btn-sm" onclick={() => (showForm = true)}>
+          <button class="btn-secondary btn-sm" onclick={() => (showForm = true)} disabled={readOnlyMode}>
             Criar primeiro registro
           </button>
         </div>
@@ -187,7 +216,7 @@
             <span class="entry-dot" style="background: {getCategoryColor(entry.category_id)}"></span>
             <div class="entry-info">
               <span class="entry-name">{entry.service_name}</span>
-              <span class="entry-login">{entry.login}</span>
+              <span class="entry-login">{privacyMode ? "••••••••" : entry.login}</span>
             </div>
             <span class="entry-category-tag">{getCategoryName(entry.category_id)}</span>
           </button>
@@ -210,6 +239,7 @@
         onDeleted={handleDeleted}
         onUpdated={handleUpdated}
         {categories}
+        {readOnlyMode}
       />
     {:else}
       <div class="detail-empty">

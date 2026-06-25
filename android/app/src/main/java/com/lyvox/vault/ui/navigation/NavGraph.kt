@@ -19,6 +19,7 @@ import com.lyvox.vault.ui.screens.*
 // ─── Route Constants ────────────────────────────────────────
 
 object Routes {
+    const val PERMISSIONS = "permissions"
     const val UNLOCK = "unlock"
     const val RECOVERY = "recovery"
     const val RECOVERY_SETUP = "recovery_setup"
@@ -30,16 +31,20 @@ object Routes {
     const val GENERATOR = "generator"
     const val SETTINGS = "settings"
     const val BACKUP = "backup"
+    const val AUDIT = "audit"
+    const val CSV_IMPORT = "csv_import"
+    const val MEDIA_VAULT = "media"
+    const val SYNC = "sync"
 
-    fun entryDetail(entryId: Long) = "entry_detail/$entryId"
-    fun entryForm(entryId: Long? = null) = if (entryId != null) "entry_form?entryId=$entryId" else "entry_form"
-    fun noteForm(noteId: Long? = null) = if (noteId != null) "note_form?noteId=$noteId" else "note_form"
+    fun entryDetail(entryId: String) = "entry_detail/$entryId"
+    fun entryForm(entryId: String? = null) = if (entryId != null) "entry_form?entryId=$entryId" else "entry_form"
+    fun noteForm(noteId: String? = null) = if (noteId != null) "note_form?noteId=$noteId" else "note_form"
 }
 
 /**
  * Bottom-nav destinations (show bottom bar when on these routes).
  */
-private val bottomNavRoutes = setOf(Routes.VAULT, Routes.GENERATOR, Routes.NOTES, Routes.SETTINGS)
+private val bottomNavRoutes = setOf(Routes.VAULT, Routes.GENERATOR, Routes.NOTES, Routes.MEDIA_VAULT, Routes.SETTINGS)
 
 /**
  * Root navigation host — manages the full screen flow.
@@ -53,6 +58,7 @@ fun LyvoxNavHost() {
 
     // Determine start destination
     val startDest = when {
+        !settings.getHasSeenPermissions() -> Routes.PERMISSIONS
         settings.isFirstRun() -> Routes.UNLOCK
         !session.isUnlocked -> Routes.UNLOCK
         else -> Routes.VAULT
@@ -64,7 +70,7 @@ fun LyvoxNavHost() {
     val showBottomBar = currentRoute in bottomNavRoutes
 
     LaunchedEffect(isUnlockedFlowState, currentRoute) {
-        if (!isUnlockedFlowState && !settings.isFirstRun() && currentRoute != Routes.UNLOCK && currentRoute != Routes.RECOVERY) {
+        if (!isUnlockedFlowState && !settings.isFirstRun() && currentRoute != Routes.UNLOCK && currentRoute != Routes.RECOVERY && currentRoute != Routes.PERMISSIONS) {
             navController.navigate(Routes.UNLOCK) {
                 popUpTo(0) { inclusive = true }
             }
@@ -97,6 +103,18 @@ fun LyvoxNavHost() {
             exitTransition = { fadeOut(targetAlpha = 0.3f) }
         ) {
             // ── Auth Flow ─────────────────────────────────
+            composable(Routes.PERMISSIONS) {
+                PermissionScreen(
+                    context = androidx.compose.ui.platform.LocalContext.current,
+                    onPermissionsGranted = {
+                        settings.setHasSeenPermissions(true)
+                        navController.navigate(if (settings.isFirstRun()) Routes.UNLOCK else Routes.VAULT) {
+                            popUpTo(Routes.PERMISSIONS) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(Routes.UNLOCK) {
                 UnlockScreen(
                     onUnlocked = {
@@ -141,9 +159,9 @@ fun LyvoxNavHost() {
 
             composable(
                 route = Routes.ENTRY_DETAIL,
-                arguments = listOf(navArgument("entryId") { type = NavType.LongType })
+                arguments = listOf(navArgument("entryId") { type = NavType.StringType })
             ) { backStackEntry ->
-                val entryId = backStackEntry.arguments?.getLong("entryId") ?: return@composable
+                val entryId = backStackEntry.arguments?.getString("entryId") ?: return@composable
                 EntryDetailScreen(
                     entryId = entryId,
                     onEdit = { navController.navigate(Routes.entryForm(entryId)) },
@@ -155,13 +173,14 @@ fun LyvoxNavHost() {
             composable(
                 route = Routes.ENTRY_FORM,
                 arguments = listOf(navArgument("entryId") {
-                    type = NavType.LongType
-                    defaultValue = -1L
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 })
             ) { backStackEntry ->
-                val entryId = backStackEntry.arguments?.getLong("entryId") ?: -1L
+                val entryId = backStackEntry.arguments?.getString("entryId")
                 EntryFormScreen(
-                    entryId = if (entryId > 0) entryId else null,
+                    entryId = entryId,
                     onSaved = { navController.popBackStack() },
                     onBack = { navController.popBackStack() }
                 )
@@ -182,13 +201,14 @@ fun LyvoxNavHost() {
             composable(
                 route = Routes.NOTE_FORM,
                 arguments = listOf(navArgument("noteId") {
-                    type = NavType.LongType
-                    defaultValue = -1L
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 })
             ) { backStackEntry ->
-                val noteId = backStackEntry.arguments?.getLong("noteId") ?: -1L
+                val noteId = backStackEntry.arguments?.getString("noteId")
                 NoteFormScreen(
-                    noteId = if (noteId > 0) noteId else null,
+                    noteId = noteId,
                     onSaved = { navController.popBackStack() },
                     onBack = { navController.popBackStack() }
                 )
@@ -199,6 +219,21 @@ fun LyvoxNavHost() {
                 GeneratorScreen()
             }
 
+            // ── Media Vault ──────────────────────────────
+            composable(Routes.MEDIA_VAULT) {
+                val mediaVaultManager = remember {
+                    com.lyvox.vault.service.MediaVaultManager(
+                        context = app.applicationContext,
+                        dbHelper = app.databaseHelper,
+                        sessionManager = app.sessionManager
+                    )
+                }
+                MediaVaultScreen(
+                    mediaVaultManager = mediaVaultManager,
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
             // ── Settings ────────────────────────────────
             composable(Routes.SETTINGS) {
                 SettingsScreen(
@@ -207,12 +242,39 @@ fun LyvoxNavHost() {
                     },
                     onNavigateToBackup = {
                         navController.navigate(Routes.BACKUP)
+                    },
+                    onNavigateToAudit = {
+                        navController.navigate(Routes.AUDIT)
+                    },
+                    onNavigateToCsvImport = {
+                        navController.navigate(Routes.CSV_IMPORT)
+                    },
+                    onNavigateToSync = {
+                        navController.navigate(Routes.SYNC)
                     }
                 )
             }
 
             composable(Routes.BACKUP) {
                 BackupScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Routes.AUDIT) {
+                AuditScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Routes.CSV_IMPORT) {
+                CsvImportScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Routes.SYNC) {
+                SyncScreen(
                     onBack = { navController.popBackStack() }
                 )
             }

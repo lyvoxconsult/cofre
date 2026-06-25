@@ -45,7 +45,8 @@ pub fn unlock_vault(
     // Se não há salt, é a primeira execução: cria um novo salt
     let salt = match salt_hex {
         Some(hex) => {
-            let salt_bytes = hex::decode(&hex).map_err(|_| "Salt inválido na configuração.".to_string())?;
+            let salt_bytes =
+                hex::decode(&hex).map_err(|_| "Salt inválido na configuração.".to_string())?;
             if salt_bytes.len() != 16 {
                 return Err("Salt com tamanho inválido.".to_string());
             }
@@ -157,6 +158,33 @@ pub fn record_activity(session: State<'_, SessionState>) -> Result<(), String> {
         s.record_activity();
         Ok(())
     })
+}
+
+/// Verifica se a senha fornecida corresponde à senha mestra atualmente ativa.
+#[tauri::command]
+pub fn verify_master_password(
+    password: String,
+    session: State<'_, SessionState>,
+    config: State<'_, ConfigState>,
+) -> Result<bool, String> {
+    let salt_hex = config.read(|c| c.salt.clone())?;
+    let salt_hex = match salt_hex {
+        Some(hex) => hex,
+        None => return Ok(false),
+    };
+    let salt_bytes =
+        hex::decode(&salt_hex).map_err(|_| "Salt inválido na configuração.".to_string())?;
+    let mut salt = [0u8; 16];
+    salt.copy_from_slice(&salt_bytes);
+
+    let key = key_derivation::derive_key(&password, &salt)?;
+
+    let matches = session.with_session(|s| match s.get_key() {
+        Some(session_key) => Ok(**session_key == *key),
+        None => Err("Cofre bloqueado. Desbloqueie primeiro.".to_string()),
+    })?;
+
+    Ok(matches)
 }
 
 /// Retorna o caminho do banco de dados no diretório de dados do app.

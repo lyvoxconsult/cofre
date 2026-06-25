@@ -6,9 +6,13 @@
   let notes = $state<SecureNoteDecrypted[]>([]);
   let loading = $state(false);
   let query = $state("");
-  let selectedId = $state<number | null>(null);
+  let selectedId = $state<string | null>(null);
   let showForm = $state(false);
   let editing = $state(false);
+
+  let showDeleteConfirm = $state(false);
+  let confirmPassword = $state("");
+  let validatingDelete = $state(false);
 
   // Form state
   let formTitle = $state("");
@@ -37,11 +41,22 @@
     }
   }
 
+  let readOnlyMode = $state(false);
+  async function loadConfig() {
+    try {
+      const cfg = await invoke<any>("get_settings");
+      readOnlyMode = cfg.read_only_mode;
+    } catch {
+      // ignore
+    }
+  }
+
   $effect(() => {
     loadNotes();
+    loadConfig();
   });
 
-  function selectNote(id: number) {
+  function selectNote(id: string) {
     selectedId = id;
     editing = false;
     showForm = false;
@@ -100,17 +115,27 @@
     }
   }
 
-  async function deleteNote() {
-    if (!selectedNote) return;
-    try {
-      const { confirm } = await import("@tauri-apps/plugin-dialog");
-      const confirmed = await confirm("Tem certeza? Esta ação não pode ser desfeita.", {
-        title: "Excluir Nota",
-        kind: "warning",
-      });
-      if (!confirmed) return;
+  function deleteNote() {
+    showDeleteConfirm = true;
+  }
 
+  async function handleConfirmDelete() {
+    if (!selectedNote) return;
+    if (!confirmPassword) {
+      showToast("Por favor, digite a senha mestra.", "error");
+      return;
+    }
+    validatingDelete = true;
+    try {
+      const isCorrect = await invoke<boolean>("verify_master_password", { password: confirmPassword });
+      if (!isCorrect) {
+        showToast("Senha mestra incorreta.", "error");
+        validatingDelete = false;
+        return;
+      }
       await invoke("delete_note", { id: selectedNote.id });
+      showDeleteConfirm = false;
+      confirmPassword = "";
       selectedId = null;
       showForm = false;
       editing = false;
@@ -118,6 +143,8 @@
       showToast("Nota excluída", "info");
     } catch (e) {
       showToast(String(e), "error");
+    } finally {
+      validatingDelete = false;
     }
   }
 </script>
@@ -163,7 +190,7 @@
     </div>
 
     <div class="sidebar-footer">
-      <button class="btn-primary btn-sm" onclick={openNewForm}>
+      <button class="btn-primary btn-sm" onclick={openNewForm} disabled={readOnlyMode}>
         + Nova Nota
       </button>
     </div>
@@ -220,8 +247,8 @@
         </div>
 
         <div class="detail-actions">
-          <button class="btn-primary" onclick={openEditForm}>Editar</button>
-          <button class="btn-danger" onclick={deleteNote}>Excluir</button>
+          <button class="btn-primary" onclick={openEditForm} disabled={readOnlyMode}>Editar</button>
+          <button class="btn-danger" onclick={deleteNote} disabled={readOnlyMode}>Excluir</button>
         </div>
       </div>
     {:else}
@@ -230,6 +257,29 @@
       </div>
     {/if}
   </div>
+
+  {#if showDeleteConfirm}
+    <div class="modal-overlay">
+      <div class="modal-content animate-scale-in">
+        <h3 style="margin-top: 0; color: var(--color-danger);">Confirmar Exclusão</h3>
+        <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: var(--line-height-normal);">
+          Esta ação é irreversível. Por favor, confirme digitando sua senha mestra.
+        </p>
+        <label class="field" style="display: flex; flex-direction: column; gap: var(--space-1); width: 100%;">
+          <span class="field-label" style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; color: var(--color-text-tertiary);">Senha Mestra</span>
+          <input type="password" bind:value={confirmPassword} placeholder="Digite sua senha mestra" style="width: 100%;" />
+        </label>
+        <div class="modal-actions" style="margin-top: var(--space-4); display: flex; gap: var(--space-2); justify-content: flex-end;">
+          <button class="btn-danger" onclick={handleConfirmDelete} disabled={validatingDelete}>
+            {validatingDelete ? "Excluindo..." : "Confirmar Exclusão"}
+          </button>
+          <button class="btn-secondary" onclick={() => { showDeleteConfirm = false; confirmPassword = ""; }}>
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>

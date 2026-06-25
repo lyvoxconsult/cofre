@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">lyvox vault</string>
+    <string name="app_name">Gravador de Voz</string>
     <string name="app_description">Gerenciador seguro de senhas</string>
 
     <!-- Unlock -->
@@ -83,7 +83,7 @@
     <string name="remove_biometric">Remover acesso por digital</string>
     <string name="remove_biometric_confirm">Tem certeza que deseja remover o acesso por digital deste app?</string>
     <string name="about_section">Sobre</string>
-    <string name="app_version">Versão 1.0.0</string>
+    <string name="app_version">Versao 1.0.3</string>
 
     <!-- Recovery -->
     <string name="recovery_title">Recuperar Acesso</string>

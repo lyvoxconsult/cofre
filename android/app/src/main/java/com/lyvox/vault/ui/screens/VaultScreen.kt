@@ -27,7 +27,7 @@ import com.lyvox.vault.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VaultScreen(
-    onEntryClick: (Long) -> Unit,
+    onEntryClick: (String) -> Unit,
     onAddEntry: () -> Unit
 ) {
     val app = LyvoxApp.instance
@@ -38,6 +38,7 @@ fun VaultScreen(
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
+    val privacyMode by remember { mutableStateOf(app.settingsRepository.getPrivacyMode()) }
 
     LaunchedEffect(Unit) {
         val loadedCategories = db.listCategories()
@@ -125,7 +126,8 @@ fun VaultScreen(
                     items(entries, key = { it.id }) { entry ->
                         EntryCard(
                             entry = entry,
-                            onClick = { onEntryClick(entry.id) }
+                            onClick = { onEntryClick(entry.id) },
+                            privacyMode = privacyMode
                         )
                     }
                 }
@@ -152,7 +154,8 @@ fun VaultScreen(
 @Composable
 private fun EntryCard(
     entry: VaultEntryDecrypted,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    privacyMode: Boolean = false
 ) {
     Card(
         onClick = onClick,
@@ -197,9 +200,10 @@ private fun EntryCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = entry.login,
+                    text = if (privacyMode) "••••••••" else entry.login,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (privacyMode) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

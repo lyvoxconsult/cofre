@@ -1,12 +1,11 @@
 use tauri::State;
 use zeroize::Zeroizing;
 
+use crate::config::app_config::ConfigState;
 use crate::crypto::cipher;
 use crate::session::state::SessionState;
 use crate::storage::database::DatabaseState;
-use crate::storage::models::{
-    Category, VaultEntryDecrypted,
-};
+use crate::storage::models::{Category, VaultEntryDecrypted};
 
 /// Extrai uma cópia da chave de criptografia da sessão.
 /// Isso é seguro pois [u8; 32] implementa Copy, então clonar a chave
@@ -36,13 +35,17 @@ fn decrypt_entry(
     let notes = if entry.encrypted_notes.is_empty() || entry.notes_nonce.is_none() {
         String::new()
     } else {
-        match cipher::decrypt_field(key, &entry.encrypted_notes, &entry.notes_nonce.as_ref().unwrap()) {
+        match cipher::decrypt_field(
+            key,
+            &entry.encrypted_notes,
+            &entry.notes_nonce.as_ref().unwrap(),
+        ) {
             Ok(n) => n,
             Err(_) => String::new(),
         }
     };
 
-    let category_name = match entry.category_id {
+    let category_name = match &entry.category_id {
         Some(cid) => database.get_category_name(cid).unwrap_or(None),
         None => None,
     };
@@ -56,8 +59,10 @@ fn decrypt_entry(
         url: entry.url,
         category_id: entry.category_id,
         category_name,
+        is_favorite: entry.is_favorite,
         created_at: entry.created_at,
         updated_at: entry.updated_at,
+        deleted_at: entry.deleted_at,
     })
 }
 
@@ -70,14 +75,18 @@ pub fn create_entry(
     password: String,
     notes: Option<String>,
     url: String,
-    category_id: Option<i64>,
+    category_id: Option<String>,
+    is_favorite: Option<bool>,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
-) -> Result<i64, String> {
+    config: State<'_, ConfigState>,
+) -> Result<String, String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
     let key = get_session_key(&session)?;
 
-    let (enc_pwd_b64, pwd_nonce_b64) =
-        cipher::encrypt_field(&key, &password)?;
+    let (enc_pwd_b64, pwd_nonce_b64) = cipher::encrypt_field(&key, &password)?;
 
     let notes_str = notes.unwrap_or_default();
     let (enc_notes_b64, notes_nonce_b64) = if notes_str.is_empty() {
@@ -87,12 +96,14 @@ pub fn create_entry(
     };
 
     let payload = crate::storage::models::CreateEntryPayload {
+        id: None,
         service_name,
         login,
         password: String::new(),
         notes: None,
         url,
         category_id,
+        is_favorite,
     };
 
     let notes_nonce_opt = if notes_nonce_b64.is_empty() {
@@ -156,7 +167,7 @@ pub fn search_entries(
 
 #[tauri::command]
 pub fn get_entry(
-    id: i64,
+    id: String,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
 ) -> Result<Option<VaultEntryDecrypted>, String> {
@@ -164,7 +175,7 @@ pub fn get_entry(
 
     db.with_db(|database| {
         let entry = database
-            .get_entry(id)
+            .get_entry(&id)
             .map_err(|e| format!("Erro ao obter entrada: {e}"))?;
 
         match entry {
@@ -176,20 +187,24 @@ pub fn get_entry(
 
 #[tauri::command]
 pub fn update_entry(
-    id: i64,
+    id: String,
     service_name: String,
     login: String,
     password: String,
     notes: Option<String>,
     url: String,
-    category_id: Option<i64>,
+    category_id: Option<String>,
+    is_favorite: Option<bool>,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
 ) -> Result<(), String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
     let key = get_session_key(&session)?;
 
-    let (enc_pwd_b64, pwd_nonce_b64) =
-        cipher::encrypt_field(&key, &password)?;
+    let (enc_pwd_b64, pwd_nonce_b64) = cipher::encrypt_field(&key, &password)?;
 
     let notes_str = notes.unwrap_or_default();
     let (enc_notes_b64, notes_nonce_b64) = if notes_str.is_empty() {
@@ -206,6 +221,7 @@ pub fn update_entry(
         notes: None,
         url,
         category_id,
+        is_favorite,
     };
 
     let notes_nonce_opt = if notes_nonce_b64.is_empty() {
@@ -216,22 +232,32 @@ pub fn update_entry(
 
     db.with_db(|database| {
         database
-            .update_entry(&payload, &enc_pwd_b64, &pwd_nonce_b64, &enc_notes_b64, notes_nonce_opt)
+            .update_entry(
+                &payload,
+                &enc_pwd_b64,
+                &pwd_nonce_b64,
+                &enc_notes_b64,
+                notes_nonce_opt,
+            )
             .map_err(|e| format!("Erro ao atualizar entrada: {e}"))
     })
 }
 
 #[tauri::command]
 pub fn delete_entry(
-    id: i64,
+    id: String,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
 ) -> Result<(), String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
     let _key = get_session_key(&session)?;
 
     db.with_db(|database| {
         database
-            .delete_entry(id)
+            .delete_entry(&id)
             .map_err(|e| format!("Erro ao excluir entrada: {e}"))
     })
 }

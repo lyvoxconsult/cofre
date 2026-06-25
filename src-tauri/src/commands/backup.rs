@@ -14,7 +14,7 @@ pub struct BackupEntry {
     pub password: String,
     pub notes: String,
     pub url: String,
-    pub category_id: Option<i64>,
+    pub category_id: Option<String>,
 }
 
 /// Estrutura de uma nota no backup (conteúdo já descriptografado).
@@ -74,7 +74,11 @@ fn decrypt_entry(
     let notes = if entry.encrypted_notes.is_empty() || entry.notes_nonce.is_none() {
         String::new()
     } else {
-        match cipher::decrypt_field(key, &entry.encrypted_notes, &entry.notes_nonce.as_ref().unwrap()) {
+        match cipher::decrypt_field(
+            key,
+            &entry.encrypted_notes,
+            &entry.notes_nonce.as_ref().unwrap(),
+        ) {
             Ok(n) => n,
             Err(_) => String::new(),
         }
@@ -91,10 +95,7 @@ fn decrypt_entry(
 }
 
 /// Descriptografa uma nota individual.
-fn decrypt_note(
-    key: &Zeroizing<[u8; 32]>,
-    note: models::SecureNote,
-) -> Result<BackupNote, String> {
+fn decrypt_note(key: &Zeroizing<[u8; 32]>, note: models::SecureNote) -> Result<BackupNote, String> {
     let content = if note.encrypted_content.is_empty() || note.content_nonce.is_empty() {
         String::new()
     } else {
@@ -171,8 +172,7 @@ pub fn export_backup(
 
     // Codifica em base64
     use base64::Engine;
-    let encrypted_b64 =
-        base64::engine::general_purpose::STANDARD.encode(&encrypted_bytes);
+    let encrypted_b64 = base64::engine::general_purpose::STANDARD.encode(&encrypted_bytes);
     let nonce_b64 = base64::engine::general_purpose::STANDARD.encode(&nonce);
     let salt_hex = hex::encode(backup_salt);
 
@@ -248,8 +248,8 @@ pub fn import_backup(
     let json_str = String::from_utf8(decrypted_bytes)
         .map_err(|_| "Backup corrompido (dados inválidos).".to_string())?;
 
-    let payload: BackupPayload = serde_json::from_str(&json_str)
-        .map_err(|e| format!("Backup corrompido: {e}"))?;
+    let payload: BackupPayload =
+        serde_json::from_str(&json_str).map_err(|e| format!("Backup corrompido: {e}"))?;
 
     // Se for substituir, limpa os dados existentes
     if replace {
@@ -280,12 +280,14 @@ pub fn import_backup(
             database
                 .create_entry(
                     &models::CreateEntryPayload {
+                        id: None,
                         service_name: entry.service_name.clone(),
                         login: entry.login.clone(),
                         password: String::new(),
                         notes: None,
                         url: entry.url.clone(),
-                        category_id: entry.category_id,
+                        category_id: entry.category_id.clone(),
+                        is_favorite: None,
                     },
                     &enc_pwd,
                     &pwd_nonce,
@@ -310,9 +312,11 @@ pub fn import_backup(
             database
                 .create_note(
                     &models::CreateNotePayload {
+                        id: None,
                         title: note.title.clone(),
                         content: String::new(),
                         category: note.category.clone(),
+                        is_favorite: None,
                     },
                     &enc_content,
                     &content_nonce,
@@ -339,8 +343,7 @@ pub fn write_backup_file(path: String, content: String) -> Result<(), String> {
 
     // Garante que o diretório pai existe
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| format!("Erro ao criar diretório: {e}"))?;
+        std::fs::create_dir_all(parent).map_err(|e| format!("Erro ao criar diretório: {e}"))?;
     }
 
     std::fs::write(path, &content)
@@ -352,8 +355,7 @@ pub fn write_backup_file(path: String, content: String) -> Result<(), String> {
 /// Lê um arquivo de backup do disco e retorna seu conteúdo como string.
 #[tauri::command]
 pub fn read_backup_file(path: String) -> Result<String, String> {
-    std::fs::read_to_string(&path)
-        .map_err(|e| format!("Erro ao ler arquivo de backup: {e}"))
+    std::fs::read_to_string(&path).map_err(|e| format!("Erro ao ler arquivo de backup: {e}"))
 }
 
 /// Exclui todos os dados do cofre (entradas e notas) após verificar a senha mestra.
@@ -394,21 +396,19 @@ pub fn clear_all_vault_data(
     }
 
     // Conta registros para feedback
-    let entries_count = db
-        .with_db(|database| {
-            database
-                .list_entries()
-                .map(|e| e.len())
-                .map_err(|e| format!("Erro ao contar entradas: {e}"))
-        })?;
+    let entries_count = db.with_db(|database| {
+        database
+            .list_entries()
+            .map(|e| e.len())
+            .map_err(|e| format!("Erro ao contar entradas: {e}"))
+    })?;
 
-    let notes_count = db
-        .with_db(|database| {
-            database
-                .list_notes()
-                .map(|n| n.len())
-                .map_err(|e| format!("Erro ao contar notas: {e}"))
-        })?;
+    let notes_count = db.with_db(|database| {
+        database
+            .list_notes()
+            .map(|n| n.len())
+            .map_err(|e| format!("Erro ao contar notas: {e}"))
+    })?;
 
     // Limpa todos os dados
     db.with_db(|database| {

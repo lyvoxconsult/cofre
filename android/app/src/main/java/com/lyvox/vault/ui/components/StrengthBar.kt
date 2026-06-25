@@ -75,7 +75,7 @@ fun StrengthBar(
         Spacer(modifier = Modifier.height(4.dp))
 
         LinearProgressIndicator(
-            progress = animatedProgress,
+            progress = { animatedProgress },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(4.dp)

@@ -16,7 +16,8 @@
   let password = $state("");
   let url = $state("");
   let notes = $state("");
-  let categoryId = $state<number | null>(null);
+  let categoryId = $state<string | null>(null);
+  let isFavorite = $state(false);
   let saving = $state(false);
 
   async function handleCreate() {
@@ -42,6 +43,7 @@
         notes: notes.trim() || null,
         url: url.trim(),
         categoryId,
+        isFavorite,
       });
       onCreated();
     } catch (e) {
@@ -108,6 +110,11 @@
           <option value={cat.id}>{cat.name}</option>
         {/each}
       </select>
+    </label>
+
+    <label class="field-checkbox" style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer; padding: var(--space-1) 0;">
+      <input type="checkbox" bind:checked={isFavorite} style="width: auto;" />
+      <span style="font-size: var(--font-size-sm); color: var(--color-text-primary);">Adicionar aos Favoritos</span>
     </label>
 
     <label class="field">

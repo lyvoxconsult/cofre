@@ -82,7 +82,10 @@ impl SessionState {
     where
         F: FnOnce(&mut Session) -> Result<T, String>,
     {
-        let mut guard = self.session.lock().map_err(|e| format!("Erro de lock: {e}"))?;
+        let mut guard = self
+            .session
+            .lock()
+            .map_err(|e| format!("Erro de lock: {e}"))?;
         f(&mut guard)
     }
 }

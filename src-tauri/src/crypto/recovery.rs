@@ -31,92 +31,394 @@ pub fn hash_answer(salt: &str, answer: &str) -> String {
 /// evitando alternativas absurdas que revelariam a resposta correta.
 const QUESTION_CATEGORIES: &[(usize, &[&str])] = &[
     // 0: Nome do animal de estimação → nomes comuns de pets
-    (0, &[
-        "Rex", "Bolinha", "Toddy", "Mel", "Bela", "Thor", "Luna", "Pipoca", "Billy", "Nina",
-        "Fred", "Boby", "Chico", "Teco", "Lola", "Toto", "Mimi", "Bisteca", "Pandora", "Tobias",
-        "Pituco", "Duda", "Sansão", "Floquinho", "Negão", "Branca", "Caramelo", "Tigrão",
-        "Shirley", "Romeu", "Julieta", "Thor", "Luke", "Amora", "Pudim", "Cookie", "Bruce",
-    ]),
+    (
+        0,
+        &[
+            "Rex",
+            "Bolinha",
+            "Toddy",
+            "Mel",
+            "Bela",
+            "Thor",
+            "Luna",
+            "Pipoca",
+            "Billy",
+            "Nina",
+            "Fred",
+            "Boby",
+            "Chico",
+            "Teco",
+            "Lola",
+            "Toto",
+            "Mimi",
+            "Bisteca",
+            "Pandora",
+            "Tobias",
+            "Pituco",
+            "Duda",
+            "Sansão",
+            "Floquinho",
+            "Negão",
+            "Branca",
+            "Caramelo",
+            "Tigrão",
+            "Shirley",
+            "Romeu",
+            "Julieta",
+            "Thor",
+            "Luke",
+            "Amora",
+            "Pudim",
+            "Cookie",
+            "Bruce",
+        ],
+    ),
     // 1: Cidade natal / Onde nasceu → cidades brasileiras
-    (1, &[
-        "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador", "Brasília", "Fortaleza",
-        "Curitiba", "Recife", "Porto Alegre", "Campinas", "Manaus", "Goiânia", "Niterói",
-        "Santos", "Ribeirão Preto", "Uberlândia", "Sorocaba", "Londrina", "Joinville", "Juiz de Fora",
-        "Florianópolis", "Vitória", "Natal", "João Pessoa", "Maceió", "Cuiabá", "São Luís",
-        "Teresina", "Campo Grande", "Aracaju", "Palmas", "Boa Vista", "Macapá", "Porto Velho",
-        "Rio Branco", "Caxias do Sul", "São José dos Campos", "Blumenau", "Petrópolis",
-        "Taubaté", "Jundiaí", "Piracicaba", "Maringá", "Ponta Grossa", "Cascavel",
-    ]),
+    (
+        1,
+        &[
+            "São Paulo",
+            "Rio de Janeiro",
+            "Belo Horizonte",
+            "Salvador",
+            "Brasília",
+            "Fortaleza",
+            "Curitiba",
+            "Recife",
+            "Porto Alegre",
+            "Campinas",
+            "Manaus",
+            "Goiânia",
+            "Niterói",
+            "Santos",
+            "Ribeirão Preto",
+            "Uberlândia",
+            "Sorocaba",
+            "Londrina",
+            "Joinville",
+            "Juiz de Fora",
+            "Florianópolis",
+            "Vitória",
+            "Natal",
+            "João Pessoa",
+            "Maceió",
+            "Cuiabá",
+            "São Luís",
+            "Teresina",
+            "Campo Grande",
+            "Aracaju",
+            "Palmas",
+            "Boa Vista",
+            "Macapá",
+            "Porto Velho",
+            "Rio Branco",
+            "Caxias do Sul",
+            "São José dos Campos",
+            "Blumenau",
+            "Petrópolis",
+            "Taubaté",
+            "Jundiaí",
+            "Piracicaba",
+            "Maringá",
+            "Ponta Grossa",
+            "Cascavel",
+        ],
+    ),
     // 2: Melhor amigo de infância → nomes masculinos/femininos
-    (2, &[
-        "Pedro", "João", "Lucas", "Gabriel", "Rafael", "Matheus", "Felipe", "Leonardo",
-        "Gustavo", "Vinicius", "Fernando", "Bruno", "Diego", "Thiago", "Rodrigo", "Eduardo",
-        "Marcos", "Paulo", "Carlos", "André", "Luiz", "Ricardo", "Daniel", "José", "Marcelo",
-        "Ana", "Maria", "Juliana", "Camila", "Fernanda", "Mariana", "Patrícia", "Amanda",
-        "Beatriz", "Letícia", "Carolina", "Isabela", "Larissa", "Nathália", "Gabriela",
-        "Rafaela", "Luciana", "Renata", "Aline", "Vanessa", "Cristina", "Roberta",
-    ]),
+    (
+        2,
+        &[
+            "Pedro",
+            "João",
+            "Lucas",
+            "Gabriel",
+            "Rafael",
+            "Matheus",
+            "Felipe",
+            "Leonardo",
+            "Gustavo",
+            "Vinicius",
+            "Fernando",
+            "Bruno",
+            "Diego",
+            "Thiago",
+            "Rodrigo",
+            "Eduardo",
+            "Marcos",
+            "Paulo",
+            "Carlos",
+            "André",
+            "Luiz",
+            "Ricardo",
+            "Daniel",
+            "José",
+            "Marcelo",
+            "Ana",
+            "Maria",
+            "Juliana",
+            "Camila",
+            "Fernanda",
+            "Mariana",
+            "Patrícia",
+            "Amanda",
+            "Beatriz",
+            "Letícia",
+            "Carolina",
+            "Isabela",
+            "Larissa",
+            "Nathália",
+            "Gabriela",
+            "Rafaela",
+            "Luciana",
+            "Renata",
+            "Aline",
+            "Vanessa",
+            "Cristina",
+            "Roberta",
+        ],
+    ),
     // 3: Professor favorito → nomes comuns
-    (3, &[
-        "Carlos", "Roberto", "Márcia", "Cláudia", "José", "Maria", "Paulo", "Cristina",
-        "Fernando", "Sandra", "Antônio", "João", "Pedro", "Marcos", "Rita", "Tereza",
-        "Miguel", "Bianca", "Jorge", "Marta", "Vicente", "Helena", "Ronaldo", "Sônia",
-        "Alberto", "Lúcia", "Eduardo", "Vera", "Gustavo", "Lívia", "Renato", "Débora",
-        "Mário", "Eliane", "Ricardo", "Célia", "Sérgio", "Fátima", "Adriana", "Fábio",
-    ]),
+    (
+        3,
+        &[
+            "Carlos", "Roberto", "Márcia", "Cláudia", "José", "Maria", "Paulo", "Cristina",
+            "Fernando", "Sandra", "Antônio", "João", "Pedro", "Marcos", "Rita", "Tereza", "Miguel",
+            "Bianca", "Jorge", "Marta", "Vicente", "Helena", "Ronaldo", "Sônia", "Alberto",
+            "Lúcia", "Eduardo", "Vera", "Gustavo", "Lívia", "Renato", "Débora", "Mário", "Eliane",
+            "Ricardo", "Célia", "Sérgio", "Fátima", "Adriana", "Fábio",
+        ],
+    ),
     // 4: Prato favorito → comidas/pratos
-    (4, &[
-        "Feijoada", "Pizza", "Lasanha", "Churrasco", "Strogonoff", "Macarrão", "Sushi",
-        "Moqueca", "Acarajé", "Brigadeiro", "Açaí", "Coxinha", "Escondidinho", "Pão de Queijo",
-        "Salpicão", "Virado à Paulista", "Baião de Dois", "Tapioca", "Carne de Sol", "Pudim",
-        "Pastel", "Chocolate", "Sorvete", "Batata Frita", "Hambúrguer", "Cuscuz", "Pato no Tucupi",
-        "Vatapá", "Galinhada", "Empadão", "Risoto", "Torta de Frango", "Pavê", "Mousse",
-    ]),
+    (
+        4,
+        &[
+            "Feijoada",
+            "Pizza",
+            "Lasanha",
+            "Churrasco",
+            "Strogonoff",
+            "Macarrão",
+            "Sushi",
+            "Moqueca",
+            "Acarajé",
+            "Brigadeiro",
+            "Açaí",
+            "Coxinha",
+            "Escondidinho",
+            "Pão de Queijo",
+            "Salpicão",
+            "Virado à Paulista",
+            "Baião de Dois",
+            "Tapioca",
+            "Carne de Sol",
+            "Pudim",
+            "Pastel",
+            "Chocolate",
+            "Sorvete",
+            "Batata Frita",
+            "Hambúrguer",
+            "Cuscuz",
+            "Pato no Tucupi",
+            "Vatapá",
+            "Galinhada",
+            "Empadão",
+            "Risoto",
+            "Torta de Frango",
+            "Pavê",
+            "Mousse",
+        ],
+    ),
     // 5: Primeira escola → nomes de escolas
-    (5, &[
-        "Santo Antônio", "São José", "Salesiano", "Marista", "Santa Maria", "Dom Bosco",
-        "Albert Einstein", "Santo Agostinho", "São Paulo", "Bom Jesus", "Sagrado Coração",
-        "Santa Catarina", "Santa Úrsula", "Imaculada Conceição", "Nossa Senhora Aparecida",
-        "São João", "São Francisco", "Santa Terezinha", "Santo Inácio", "Nossa Senhora do Carmo",
-        "São Lucas", "Santa Cecília", "Padre Anchieta", "João XXIII", "São Miguel",
-        "Divino Espírito Santo", "Santana", "Santa Isabel", "São Vicente", "Nossa Senhora das Graças",
-        "Santa Clara", "São Judas Tadeu", "Aparecida", "Santo Expedito", "Santa Rita",
-    ]),
+    (
+        5,
+        &[
+            "Santo Antônio",
+            "São José",
+            "Salesiano",
+            "Marista",
+            "Santa Maria",
+            "Dom Bosco",
+            "Albert Einstein",
+            "Santo Agostinho",
+            "São Paulo",
+            "Bom Jesus",
+            "Sagrado Coração",
+            "Santa Catarina",
+            "Santa Úrsula",
+            "Imaculada Conceição",
+            "Nossa Senhora Aparecida",
+            "São João",
+            "São Francisco",
+            "Santa Terezinha",
+            "Santo Inácio",
+            "Nossa Senhora do Carmo",
+            "São Lucas",
+            "Santa Cecília",
+            "Padre Anchieta",
+            "João XXIII",
+            "São Miguel",
+            "Divino Espírito Santo",
+            "Santana",
+            "Santa Isabel",
+            "São Vicente",
+            "Nossa Senhora das Graças",
+            "Santa Clara",
+            "São Judas Tadeu",
+            "Aparecida",
+            "Santo Expedito",
+            "Santa Rita",
+        ],
+    ),
     // 6: Sobrenome de solteira da mãe → sobrenomes brasileiros comuns
-    (6, &[
-        "Silva", "Santos", "Oliveira", "Souza", "Pereira", "Costa", "Ferreira", "Rodrigues",
-        "Almeida", "Nascimento", "Lima", "Araújo", "Carvalho", "Gomes", "Martins", "Barbosa",
-        "Rocha", "Ribeiro", "Alves", "Monteiro", "Mendes", "Barros", "Freitas", "Moreira",
-        "Cardoso", "Dias", "Campos", "Teixeira", "Castro", "Fernandes", "Pinto", "Cavalcanti",
-        "Nunes", "Correia", "Melo", "Cunha", "Machado", "Vieira", "Azevedo", "Leão",
-    ]),
+    (
+        6,
+        &[
+            "Silva",
+            "Santos",
+            "Oliveira",
+            "Souza",
+            "Pereira",
+            "Costa",
+            "Ferreira",
+            "Rodrigues",
+            "Almeida",
+            "Nascimento",
+            "Lima",
+            "Araújo",
+            "Carvalho",
+            "Gomes",
+            "Martins",
+            "Barbosa",
+            "Rocha",
+            "Ribeiro",
+            "Alves",
+            "Monteiro",
+            "Mendes",
+            "Barros",
+            "Freitas",
+            "Moreira",
+            "Cardoso",
+            "Dias",
+            "Campos",
+            "Teixeira",
+            "Castro",
+            "Fernandes",
+            "Pinto",
+            "Cavalcanti",
+            "Nunes",
+            "Correia",
+            "Melo",
+            "Cunha",
+            "Machado",
+            "Vieira",
+            "Azevedo",
+            "Leão",
+        ],
+    ),
     // 7: Livro favorito → títulos de livros famosos
-    (7, &[
-        "Dom Casmurro", "Grande Sertão Veredas", "Memórias Póstumas de Brás Cubas",
-        "Capitães da Areia", "O Pequeno Príncipe", "1984", "A更多ia", "O Alquimista",
-        "Cem Anos de Solidão", "A Moreninha", "Iracema", "Senhora", "O Cortiço",
-        "Macunaíma", "Vidas Secas", "O Guarani", "A Escrava Isaura", "O Primo Basílio",
-        "Os Maias", "O Ateneu", "Triste Fim de Policarpo Quaresma", "O Auto da Compadecida",
-        "Harry Potter", "O Senhor dos Anéis", "Jogos Vorazes", "Percy Jackson",
-        "O Código Da Vinci", "Crime e Castigo", "Orgulho e Preconceito", "Moby Dick",
-        "Drácula", "Frankenstein", "O Conde de Monte Cristo", "Os Três Mosqueteiros",
-    ]),
+    (
+        7,
+        &[
+            "Dom Casmurro",
+            "Grande Sertão Veredas",
+            "Memórias Póstumas de Brás Cubas",
+            "Capitães da Areia",
+            "O Pequeno Príncipe",
+            "1984",
+            "A更多ia",
+            "O Alquimista",
+            "Cem Anos de Solidão",
+            "A Moreninha",
+            "Iracema",
+            "Senhora",
+            "O Cortiço",
+            "Macunaíma",
+            "Vidas Secas",
+            "O Guarani",
+            "A Escrava Isaura",
+            "O Primo Basílio",
+            "Os Maias",
+            "O Ateneu",
+            "Triste Fim de Policarpo Quaresma",
+            "O Auto da Compadecida",
+            "Harry Potter",
+            "O Senhor dos Anéis",
+            "Jogos Vorazes",
+            "Percy Jackson",
+            "O Código Da Vinci",
+            "Crime e Castigo",
+            "Orgulho e Preconceito",
+            "Moby Dick",
+            "Drácula",
+            "Frankenstein",
+            "O Conde de Monte Cristo",
+            "Os Três Mosqueteiros",
+        ],
+    ),
     // 8: Ano de formação no ensino médio → anos
-    (8, &[
-        "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007",
-        "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017",
-        "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026",
-        "1988", "1989", "1990", "1991", "1992", "1993", "1994", "1995", "1996", "1997",
-    ]),
+    (
+        8,
+        &[
+            "1998", "1999", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008",
+            "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019",
+            "2020", "2021", "2022", "2023", "2024", "2025", "2026", "1988", "1989", "1990", "1991",
+            "1992", "1993", "1994", "1995", "1996", "1997",
+        ],
+    ),
     // 9: Modelo do primeiro carro → modelos de carro comuns no Brasil
-    (9, &[
-        "Fusca", "Gol", "Corsa", "Palio", "Uno", "Celta", "Fiesta", "Focus", "Ka",
-        "Civic", "Corolla", "Santana", "Parati", "Escort", "Del Rey", "Chevette",
-        "Monza", "Opala", "Maverick", "Brasília", "Kombi", "Saveiro", "Fox", "Polo",
-        "Golf", "Vectra", "Astra", "Omega", "S10", "Ranger", "Hilux", "L200",
-        "Ecosport", "Renegade", "Compass", "HB20", "Cobalt", "Prisma", "Onix", "Classic",
-        "Siena", "Strada", "Mille", "Tempra", "Uno Mille", "147", "Spazio", "Logus",
-    ]),
+    (
+        9,
+        &[
+            "Fusca",
+            "Gol",
+            "Corsa",
+            "Palio",
+            "Uno",
+            "Celta",
+            "Fiesta",
+            "Focus",
+            "Ka",
+            "Civic",
+            "Corolla",
+            "Santana",
+            "Parati",
+            "Escort",
+            "Del Rey",
+            "Chevette",
+            "Monza",
+            "Opala",
+            "Maverick",
+            "Brasília",
+            "Kombi",
+            "Saveiro",
+            "Fox",
+            "Polo",
+            "Golf",
+            "Vectra",
+            "Astra",
+            "Omega",
+            "S10",
+            "Ranger",
+            "Hilux",
+            "L200",
+            "Ecosport",
+            "Renegade",
+            "Compass",
+            "HB20",
+            "Cobalt",
+            "Prisma",
+            "Onix",
+            "Classic",
+            "Siena",
+            "Strada",
+            "Mille",
+            "Tempra",
+            "Uno Mille",
+            "147",
+            "Spazio",
+            "Logus",
+        ],
+    ),
 ];
 
 /// Retorna a lista de candidatos a distratores para uma pergunta
@@ -128,7 +430,10 @@ fn get_candidates_for_question(question_index: usize) -> &'static [&'static str]
         }
     }
     // Fallback: lista genérica de nomes
-    &["Ana", "João", "Maria", "Pedro", "Carlos", "Sandra", "Paulo", "Cristina", "Lucas", "Juliana"]
+    &[
+        "Ana", "João", "Maria", "Pedro", "Carlos", "Sandra", "Paulo", "Cristina", "Lucas",
+        "Juliana",
+    ]
 }
 
 /// Gera `count` distratores (respostas falsas) para uma pergunta específica.
@@ -142,7 +447,11 @@ fn get_candidates_for_question(question_index: usize) -> &'static [&'static str]
 /// - Nenhum distrator se repete
 /// - Distratores variam a cada chamada (seleção aleatória)
 /// - O número de distratores gerados é exatamente `count`
-pub fn generate_distractors(question_index: usize, correct_answer: &str, count: usize) -> Vec<String> {
+pub fn generate_distractors(
+    question_index: usize,
+    correct_answer: &str,
+    count: usize,
+) -> Vec<String> {
     let all_candidates = get_candidates_for_question(question_index);
     let correct_lower = correct_answer.trim().to_lowercase();
 
@@ -202,7 +511,11 @@ pub fn shuffle_options(options: &mut [String]) {
 
 /// Gera respostas falsas diferentes a cada chamada (alias para `generate_distractors`).
 /// Usada externamente quando é necessário garantir variabilidade entre tentativas.
-pub fn generate_fresh_distractors(question_index: usize, correct_answer: &str, count: usize) -> Vec<String> {
+pub fn generate_fresh_distractors(
+    question_index: usize,
+    correct_answer: &str,
+    count: usize,
+) -> Vec<String> {
     generate_distractors(question_index, correct_answer, count)
 }
 
@@ -271,7 +584,10 @@ mod tests {
         let distractors2 = generate_distractors(2, "Pedro", 4);
         // Probabilisticamente, é extremamente raro serem exatamente iguais
         // (temos dezenas de nomes na lista, escolhendo 4)
-        let all_same = distractors1.iter().zip(distractors2.iter()).all(|(a, b)| a == b)
+        let all_same = distractors1
+            .iter()
+            .zip(distractors2.iter())
+            .all(|(a, b)| a == b)
             && distractors1.len() == distractors2.len();
         assert!(!all_same, "Distratores devem variar entre chamadas");
     }
@@ -300,10 +616,13 @@ mod tests {
 
         // Todos os distratores gerados devem ser de fato cidades da lista de candidatos
         let valid_cities = get_candidates_for_question(1);
-        let all_valid = options.iter().all(|o| {
-            o == correct || valid_cities.contains(&o.as_str())
-        });
-        assert!(all_valid, "Distratores devem ser contextualmente relevantes (cidades)");
+        let all_valid = options
+            .iter()
+            .all(|o| o == correct || valid_cities.contains(&o.as_str()));
+        assert!(
+            all_valid,
+            "Distratores devem ser contextualmente relevantes (cidades)"
+        );
     }
 
     #[test]
@@ -317,7 +636,10 @@ mod tests {
         }
         // Verifica se a posição varia (pelo menos 2 posições diferentes em 10 tentativas)
         let unique_positions: std::collections::HashSet<_> = positions.into_iter().collect();
-        assert!(unique_positions.len() >= 2, "Resposta correta deve aparecer em posições diferentes");
+        assert!(
+            unique_positions.len() >= 2,
+            "Resposta correta deve aparecer em posições diferentes"
+        );
     }
 
     #[test]
@@ -342,7 +664,13 @@ mod tests {
 
     #[test]
     fn test_shuffle_options() {
-        let mut options = vec!["A".to_string(), "B".to_string(), "C".to_string(), "D".to_string(), "E".to_string()];
+        let mut options = vec![
+            "A".to_string(),
+            "B".to_string(),
+            "C".to_string(),
+            "D".to_string(),
+            "E".to_string(),
+        ];
         let original = options.clone();
         shuffle_options(&mut options);
         // After shuffle, same elements (order may differ)
@@ -358,7 +686,12 @@ mod tests {
         // Todas as 10 perguntas devem ter categorias definidas
         for i in 0..10 {
             let distractors = generate_distractors(i, "Teste", 3);
-            assert_eq!(distractors.len(), 3, "Pergunta {} deve gerar distratores", i);
+            assert_eq!(
+                distractors.len(),
+                3,
+                "Pergunta {} deve gerar distratores",
+                i
+            );
         }
     }
 }

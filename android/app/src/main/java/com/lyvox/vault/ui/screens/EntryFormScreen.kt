@@ -35,7 +35,7 @@ import com.lyvox.vault.ui.theme.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EntryFormScreen(
-    entryId: Long?,
+    entryId: String?,
     onSaved: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -50,7 +50,7 @@ fun EntryFormScreen(
     var url by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var isFavorite by remember { mutableStateOf(false) }
-    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }

@@ -83,10 +83,7 @@ fn derive_key_from_answers(
     answers: &[String],
     custom_salt: Option<&str>,
 ) -> Result<Zeroizing<[u8; 32]>, String> {
-    let normalized: Vec<String> = answers
-        .iter()
-        .map(|a| a.trim().to_lowercase())
-        .collect();
+    let normalized: Vec<String> = answers.iter().map(|a| a.trim().to_lowercase()).collect();
     let combined = normalized.join("|||");
 
     let salt_bytes = if let Some(salt_hex) = custom_salt {
@@ -106,7 +103,10 @@ fn derive_key_from_answers(
         None
     };
 
-    let salt = salt_bytes.as_ref().map(|b| b as &[u8]).unwrap_or(RECOVERY_KEY_SALT);
+    let salt = salt_bytes
+        .as_ref()
+        .map(|b| b as &[u8])
+        .unwrap_or(RECOVERY_KEY_SALT);
     key_derivation::derive_key(&combined, salt)
 }
 
@@ -147,9 +147,9 @@ fn apply_recovery_rate_limit(config: &mut RecoveryConfig) {
     config.attempts += 1;
 
     let block_secs = match config.attempts {
-        1..=3 => 60,       // 1 minuto
-        4..=5 => 300,      // 5 minutos
-        _ => 1800,         // 30 minutos
+        1..=3 => 60,  // 1 minuto
+        4..=5 => 300, // 5 minutos
+        _ => 1800,    // 30 minutos
     };
 
     config.blocked_until = Some(now + block_secs);
@@ -279,16 +279,13 @@ pub fn setup_recovery(
     let recovery_salt_hex = hex::encode(recovery_salt);
     let recovery_key = derive_key_from_answers(&answers, Some(&recovery_salt_hex))?;
 
-    let master_key = session.with_session(|s| {
-        match s.get_key() {
-            Some(key) => Ok(key.clone()),
-            None => Err("Sessão não está desbloqueada.".to_string()),
-        }
+    let master_key = session.with_session(|s| match s.get_key() {
+        Some(key) => Ok(key.clone()),
+        None => Err("Sessão não está desbloqueada.".to_string()),
     })?;
 
     let master_key_hex = hex::encode(master_key.as_ref());
-    let (wrapped_key_b64, wrap_nonce_b64) =
-        cipher::encrypt_field(&recovery_key, &master_key_hex)?;
+    let (wrapped_key_b64, wrap_nonce_b64) = cipher::encrypt_field(&recovery_key, &master_key_hex)?;
 
     config.with_config(|c| {
         c.recovery = Some(RecoveryConfig {
@@ -363,8 +360,7 @@ pub fn verify_recovery_answers(
             Ok::<_, String>(())
         })?;
         return Err(
-            "Não foi possível validar as respostas. Tente novamente mais tarde."
-                .to_string(),
+            "Não foi possível validar as respostas. Tente novamente mais tarde.".to_string(),
         );
     }
 
@@ -429,11 +425,9 @@ pub fn reset_master_password(
     let new_key = key_derivation::derive_key(&new_password, &new_salt)?;
 
     // Pega chave atual da sessão
-    let old_key = session.with_session(|s| {
-        match s.get_key() {
-            Some(key) => Ok(key.clone()),
-            None => Err("Sessão não está desbloqueada.".to_string()),
-        }
+    let old_key = session.with_session(|s| match s.get_key() {
+        Some(key) => Ok(key.clone()),
+        None => Err("Sessão não está desbloqueada.".to_string()),
     })?;
 
     // Recriptografa entradas do cofre
@@ -478,7 +472,7 @@ pub fn reset_master_password(
 
         db.with_db(|database| {
             database.raw_update_entry(
-                entry.id,
+                &entry.id,
                 &new_enc_pwd,
                 &new_pwd_nonce,
                 &new_enc_notes,
@@ -508,7 +502,7 @@ pub fn reset_master_password(
         };
 
         db.with_db(|database| {
-            database.raw_update_note(note.id, &new_enc_content, &new_content_nonce)
+            database.raw_update_note(&note.id, &new_enc_content, &new_content_nonce)
         })?;
     }
 

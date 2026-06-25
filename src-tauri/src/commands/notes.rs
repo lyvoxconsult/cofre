@@ -1,6 +1,7 @@
 use tauri::State;
 use zeroize::Zeroizing;
 
+use crate::config::app_config::ConfigState;
 use crate::crypto::cipher;
 use crate::session::state::SessionState;
 use crate::storage::database::DatabaseState;
@@ -33,8 +34,10 @@ fn decrypt_note(
         title: note.title,
         content,
         category: note.category,
+        is_favorite: note.is_favorite,
         created_at: note.created_at,
         updated_at: note.updated_at,
+        deleted_at: note.deleted_at,
     })
 }
 
@@ -45,9 +48,14 @@ pub fn create_note(
     title: String,
     content: String,
     category: String,
+    is_favorite: Option<bool>,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
-) -> Result<i64, String> {
+    config: State<'_, ConfigState>,
+) -> Result<String, String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
     let key = get_session_key(&session)?;
 
     let (enc_content_b64, content_nonce_b64) = if content.is_empty() {
@@ -57,9 +65,11 @@ pub fn create_note(
     };
 
     let payload = crate::storage::models::CreateNotePayload {
+        id: None,
         title,
         content: String::new(),
         category,
+        is_favorite,
     };
 
     db.with_db(|database| {
@@ -111,7 +121,7 @@ pub fn search_notes(
 
 #[tauri::command]
 pub fn get_note(
-    id: i64,
+    id: String,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
 ) -> Result<Option<SecureNoteDecrypted>, String> {
@@ -119,7 +129,7 @@ pub fn get_note(
 
     db.with_db(|database| {
         let note = database
-            .get_note(id)
+            .get_note(&id)
             .map_err(|e| format!("Erro ao obter nota: {e}"))?;
 
         match note {
@@ -131,13 +141,18 @@ pub fn get_note(
 
 #[tauri::command]
 pub fn update_note(
-    id: i64,
+    id: String,
     title: String,
     content: String,
     category: String,
+    is_favorite: Option<bool>,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
 ) -> Result<(), String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
     let key = get_session_key(&session)?;
 
     let (enc_content_b64, content_nonce_b64) = if content.is_empty() {
@@ -151,6 +166,7 @@ pub fn update_note(
         title,
         content: String::new(),
         category,
+        is_favorite,
     };
 
     db.with_db(|database| {
@@ -162,15 +178,19 @@ pub fn update_note(
 
 #[tauri::command]
 pub fn delete_note(
-    id: i64,
+    id: String,
     session: State<'_, SessionState>,
     db: State<'_, DatabaseState>,
+    config: State<'_, ConfigState>,
 ) -> Result<(), String> {
+    if config.read(|c| c.read_only_mode)? {
+        return Err("Modo somente leitura ativo.".to_string());
+    }
     let _key = get_session_key(&session)?;
 
     db.with_db(|database| {
         database
-            .delete_note(id)
+            .delete_note(&id)
             .map_err(|e| format!("Erro ao excluir nota: {e}"))
     })
 }
